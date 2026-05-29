@@ -49,6 +49,10 @@ python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 
+# Celery worker (separate terminal) — async decisioning lives here.
+# Skip in dev with `CELERY_TASK_ALWAYS_EAGER=true` in .env (runs tasks inline).
+celery -A config worker --loglevel=info
+
 # Frontend (separate terminal)
 cd frontend && npm install && npm run dev
 ```

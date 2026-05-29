@@ -6,11 +6,22 @@
 //   - Approval chain (when ticket is escalated/in-flight)
 
 import { useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { ApiError, api } from "../api/client";
 import { useApi, useMutation } from "../api/hooks";
-import type { DecideResult, StagesResponse, Ticket } from "../api/types";
+import type {
+  DecideDispatched,
+  DecisionRow,
+  StagesResponse,
+  Ticket,
+} from "../api/types";
 import StagesPanel from "../components/StagesPanel";
 import { useOrgRequired } from "../contexts/OrgContext";
+
+// How long between poll attempts, and how long to wait overall before
+// giving up. The async path is bounded by the LLM call time — Gemma 3:4b
+// finishes in ~3-8s; Qwen 32B might be 10-15s. 60s is generous headroom.
+const POLL_INTERVAL_MS = 1500;
+const POLL_TIMEOUT_MS = 60_000;
 
 export default function TicketDetail() {
   const orgSlug = useOrgRequired();
@@ -26,10 +37,13 @@ export default function TicketDetail() {
   );
 
   const decide = useMutation(async () => {
-    const out = await api<DecideResult>(
+    // 1. Dispatch — backend returns 202 + task_id immediately.
+    const dispatched = await api<DecideDispatched>(
       `/api/tickets/${ticketId}/decide/`,
       { method: "POST", orgSlug },
     );
+    // 2. Poll the by-task endpoint until the worker writes the Decision row.
+    const out = await pollForDecision(dispatched.task_id, orgSlug);
     ticketState.reload();
     stagesState.reload();
     return out;
@@ -120,7 +134,7 @@ export default function TicketDetail() {
   );
 }
 
-function DecisionPanel({ decision }: { decision: DecideResult }) {
+function DecisionPanel({ decision }: { decision: DecisionRow }) {
   return (
     <div className="decision-panel">
       <div className="decision-row">
@@ -164,4 +178,30 @@ function DecisionPanel({ decision }: { decision: DecideResult }) {
       )}
     </div>
   );
+}
+
+
+/** Poll the by-task endpoint until the worker writes the Decision row.
+ *
+ *  The endpoint returns 202 while pending, 200 when ready. We follow that
+ *  protocol — ApiError(status=202) means "keep waiting", anything else
+ *  propagates as an actual error. Bails after POLL_TIMEOUT_MS so a stuck
+ *  worker can't hang the UI forever. */
+async function pollForDecision(taskId: string, orgSlug: string): Promise<DecisionRow> {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      return await api<DecisionRow>(`/api/decisions/by-task/${taskId}/`, { orgSlug });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 202) {
+        if (Date.now() > deadline) {
+          throw new Error(`Decisioning timed out after ${POLL_TIMEOUT_MS / 1000}s.`);
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        continue;
+      }
+      throw e;
+    }
+  }
 }

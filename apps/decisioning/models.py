@@ -43,6 +43,14 @@ class Decision(models.Model):
     # Was this decision auto-applied to the ticket, or held in shadow?
     shadow_mode = models.BooleanField(default=True)
 
+    # Async dispatch tracking. When the decision was kicked off via Celery
+    # (the standard path), `task_id` is the Celery task UUID — used by the
+    # polling endpoint to find the row before the requester has the
+    # decision_id. `started_at` lets us measure end-to-end latency from
+    # dispatch to completion (vs. just LLM call latency in `created_at`).
+    task_id = models.UUIDField(null=True, blank=True, db_index=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

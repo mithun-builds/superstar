@@ -42,12 +42,17 @@ logger = logging.getLogger(__name__)
 TOP_K = 8
 
 
-def decide(*, ticket: Ticket, system_prompt: str) -> Decision:
+def decide(*, ticket: Ticket, system_prompt: str, task_id=None, started_at=None) -> Decision:
     """Run the decisioning loop for one ticket. Always writes a Decision row.
 
     Reads `shadow_mode` and `confidence_threshold` from the TicketType row
     (DB-native config). Settings-level DECISIONING defaults remain as
     fallbacks for tests or deployments without a configured TicketType.
+
+    `task_id` and `started_at` are recorded on the Decision row when this is
+    invoked via the Celery task (apps.decisioning.tasks.run_decisioning).
+    The polling endpoint uses task_id to find the row before the requester
+    has the decision_id.
     """
     from apps.tickets.services import TicketTypeNotFound, get_ticket_type
 
@@ -145,6 +150,8 @@ def decide(*, ticket: Ticket, system_prompt: str) -> Decision:
         response=response,
         chunks=chunks,
         note=guard_note,
+        task_id=task_id,
+        started_at=started_at,
     )
     if decision.shadow_mode != shadow_mode:
         decision.shadow_mode = shadow_mode
@@ -202,6 +209,8 @@ def _record(
     chunks: Iterable[RuleChunk],
     note: str = "",
     error: str = "",
+    task_id=None,
+    started_at=None,
 ) -> Decision:
     chunk_ids = [str(c.id) for c in chunks]
     extra_reason = f"{note}\n{error}".strip()
@@ -219,6 +228,8 @@ def _record(
         raw_model_output=response.raw_model_output if response else "",
         model_name=settings.LLM["MODEL"],
         shadow_mode=settings.DECISIONING["SHADOW_MODE"],
+        task_id=task_id,
+        started_at=started_at,
     )
 
     # Audit — every decision attempt is logged (auto-decide, escalate, or error).

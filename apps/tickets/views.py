@@ -70,7 +70,15 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="decide")
     def decide(self, request: Request, pk: str | None = None) -> Response:
-        """Force a (re-)decisioning run for this ticket. Synchronous in v0."""
+        """Dispatch a decisioning run asynchronously via Celery.
+
+        Returns 202 with a `task_id` the client polls at
+        /api/decisions/by-task/<task_id>/. The LLM call no longer blocks
+        the HTTP worker — important under load (one Gemma call is 1-10s).
+
+        Tests run with CELERY_TASK_ALWAYS_EAGER=True so dispatch executes
+        the task inline and the Decision row exists before this returns.
+        """
         ticket = self.get_object()
         org = ticket.org
 
@@ -90,19 +98,18 @@ class TicketViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from apps.decisioning.services import decide as run_decide
+        from apps.decisioning.tasks import run_decisioning
 
-        decision = run_decide(ticket=ticket, system_prompt=tt.system_prompt)
-        return Response({
-            "decision_id": str(decision.id),
-            "outcome": decision.outcome,
-            "cited_rule_ids": decision.cited_rule_ids,
-            "confidence": decision.confidence,
-            "reason_text": decision.reason_text,
-            "price_delta": str(decision.price_delta),
-            "post_actions": decision.post_actions,
-            "shadow_mode": decision.shadow_mode,
-        })
+        async_result = run_decisioning.delay(ticket_id=str(ticket.id))
+        return Response(
+            {
+                "task_id": str(async_result.id),
+                "ticket_id": str(ticket.id),
+                "poll_url": f"/api/decisions/by-task/{async_result.id}/",
+                "status": "dispatched",
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
     @action(detail=True, methods=["get"], url_path="stages")
     def list_stages(self, request: Request, pk: str | None = None) -> Response:

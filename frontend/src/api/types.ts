@@ -72,6 +72,7 @@ export interface StagesResponse {
   stages: ApprovalStage[];
 }
 
+// Sync-era shape, kept for back-compat in any code that still uses it.
 export interface DecideResult {
   decision_id: string;
   outcome: Decision | "error";
@@ -81,6 +82,36 @@ export interface DecideResult {
   price_delta: string;
   post_actions: string[];
   shadow_mode: boolean;
+}
+
+// POST /api/tickets/<id>/decide/ now returns 202 with a Celery task id
+// the client polls. This is the dispatch response.
+export interface DecideDispatched {
+  task_id: string;
+  ticket_id: string;
+  poll_url: string;
+  status: "dispatched";
+}
+
+// GET /api/decisions/by-task/<id>/ returns one of two shapes:
+//   202 — worker hasn't written the Decision yet
+export interface DecisionPending {
+  status: "pending";
+  task_id: string;
+}
+//   200 — Decision is in
+export interface DecisionRow {
+  id: string;
+  outcome: Decision | "error";
+  cited_rule_ids: string[];
+  confidence: number;
+  reason_text: string;
+  price_delta: string;
+  post_actions: string[];
+  shadow_mode: boolean;
+  task_id: string;
+  started_at: string | null;
+  created_at: string;
 }
 
 export interface StageDecisionResult {

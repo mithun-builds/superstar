@@ -151,7 +151,11 @@ REST_FRAMEWORK = {
 # ---------------------------------------------------------------------------
 CELERY_BROKER_URL = env("REDIS_URL")
 CELERY_RESULT_BACKEND = env("REDIS_URL")
-CELERY_TASK_ALWAYS_EAGER = False
+# Eager mode runs tasks inline (no worker required) — set CELERY_TASK_ALWAYS_EAGER=true
+# for tests or for local dev when you don't want to start a worker. In prod
+# leave it false so /decide/ actually returns 202 + offloads the LLM call.
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = True  # tests want to see exceptions, not swallow them
 CELERY_TIMEZONE = "UTC"
 
 # ---------------------------------------------------------------------------
