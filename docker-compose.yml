@@ -1,0 +1,55 @@
+# SuperStar dev stack — Postgres+pgvector + Redis.
+#
+# Ollama is NOT in this file deliberately:
+# - On macOS, Docker can't pass Metal through to the container — Ollama-in-Docker
+#   would run CPU-only. Install Ollama natively instead: `brew install ollama`.
+# - On Linux with NVIDIA, the simplest path is also native install + systemd.
+#   If you really want it in Docker, see the commented `ollama:` service below.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: superstar-postgres
+    environment:
+      POSTGRES_USER: superstar
+      POSTGRES_PASSWORD: superstar
+      POSTGRES_DB: superstar
+    ports:
+      - "5432:5432"
+    volumes:
+      - superstar_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superstar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: superstar-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional Ollama-in-Docker for Linux/NVIDIA. Uncomment if you can't run it natively.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: superstar-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - superstar_ollama:/root/.ollama
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+
+volumes:
+  superstar_pgdata:
+  # superstar_ollama:

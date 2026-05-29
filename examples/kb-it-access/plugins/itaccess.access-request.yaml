@@ -1,0 +1,50 @@
+identifier: itaccess.access-request
+display_name: IT Access Request
+
+schema:
+  fields:
+    - name: requester_role
+      type: enum
+      label: Your role
+      choices: [engineer, contractor, designer, ops, finance, sales]
+      required: true
+    - name: access_type
+      type: enum
+      label: Type of access
+      choices: [vpn, local_admin, prod_db_read, prod_db_write, internal_tool]
+      required: true
+    - name: justification
+      type: text
+      label: Why do you need this?
+      required: true
+    - name: duration_days
+      type: int
+      label: How long do you need it for (days)?
+      required: true
+      help_text: "Maximum 365 days. Use 30 for short-term debugging."
+
+workflow:
+  sequential: true
+  stages:
+    - name: Security review
+      approvers: [security-team]
+      mode: any_member
+      sla_hours: 24
+    - name: Manager sign-off
+      approvers: [requester-manager]
+      mode: specific_user
+      sla_hours: 48
+
+ai_policy:
+  enabled: true
+  kb_path: kb/
+  system_prompt_path: prompts/decisioning.md
+  confidence_threshold: 0.85
+  require_citation: true
+  shadow_mode: true
+
+notifications:
+  on_create_notify: [requester]
+  on_decision_notify: [requester]
+  on_escalation_notify: [requester, approvers]
+  on_close_notify: [requester]

@@ -1,0 +1,250 @@
+/* SuperStar — minimal stylesheet.
+ * No framework. System fonts. Plain CSS variables for theme tokens.
+ * Polish pass (shadcn / Tailwind / brand) is a separate concern.
+ */
+
+:root {
+  --bg: #fafafa;
+  --bg-card: #ffffff;
+  --fg: #111;
+  --fg-muted: #666;
+  --border: #e1e1e6;
+  --accent: #0066cc;
+  --accent-hover: #0050a3;
+  --approve: #1f8a3a;
+  --reject: #c0392b;
+  --warn: #b87900;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --radius: 6px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+code {
+  background: #f0f0f3;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+pre {
+  background: #f7f7f9;
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+/* ---------------- Layout ---------------- */
+.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.brand { font-weight: 700; color: var(--fg); font-size: 1.1rem; }
+.sep { color: var(--fg-muted); }
+.org-pill {
+  background: #eef4fb;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+.header-nav { display: flex; gap: 1rem; margin-left: 1.5rem; }
+.header-spacer { flex: 1; }
+.user { color: var(--fg-muted); font-size: 0.9rem; display: flex; gap: 0.4rem; align-items: center; }
+.badge {
+  background: #333; color: #fff; padding: 0.05rem 0.4rem;
+  border-radius: 999px; font-size: 0.7rem;
+}
+.badge.shadow { background: var(--warn); }
+
+.app-main { padding: 1.5rem 2rem; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+/* ---------------- Page header ---------------- */
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1rem; gap: 1rem;
+}
+.page-header h1 { margin: 0; }
+.muted { color: var(--fg-muted); }
+.ticket-meta {
+  display: flex; gap: 0.6rem; align-items: center; margin-top: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* ---------------- Buttons / chips ---------------- */
+.btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+}
+.btn:hover:not(:disabled) { background: #f0f0f3; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-approve {
+  background: var(--approve); color: #fff; border-color: var(--approve);
+}
+.btn-reject {
+  background: var(--reject); color: #fff; border-color: var(--reject);
+}
+.btn-row { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+
+.filter-row { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer; font: inherit; font-size: 0.85rem;
+}
+.chip:hover { background: #f0f0f3; }
+.chip-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---------------- Status pills ---------------- */
+.status {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #eef0f3;
+  color: #333;
+}
+.status-open      { background: #e8f0fe; color: #1a56c0; }
+.status-escalated { background: #fff4d6; color: #8a6100; }
+.status-decided   { background: #ddf0e3; color: #1f6b35; }
+.status-approved  { background: #d4f0dd; color: #1f8a3a; }
+.status-rejected  { background: #ffe1de; color: #c0392b; }
+.status-closed    { background: #ecedf0; color: #444; }
+.status-approve   { background: #d4f0dd; color: #1f8a3a; }
+.status-reject    { background: #ffe1de; color: #c0392b; }
+.status-escalate  { background: #fff4d6; color: #8a6100; }
+.status-pending   { background: #eef0f3; color: #555; }
+.status-error     { background: #ffe1de; color: #c0392b; }
+
+/* ---------------- Org picker / Home ---------------- */
+.org-list { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
+.org-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg);
+}
+.org-card:hover { background: #f7f9fd; text-decoration: none; }
+.org-slug, .org-role { color: var(--fg-muted); font-size: 0.85rem; }
+
+/* ---------------- Ticket table ---------------- */
+.ticket-table { width: 100%; border-collapse: collapse; background: #fff; }
+.ticket-table th, .ticket-table td {
+  text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border);
+}
+.ticket-table thead { background: #f7f7f9; }
+
+/* ---------------- Forms ---------------- */
+.dyn-form, form { display: grid; gap: 0.85rem; max-width: 560px; }
+.form-field { display: grid; gap: 0.3rem; }
+.form-field label { font-weight: 600; font-size: 0.9rem; }
+.form-field input, .form-field select, .form-field textarea {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  background: #fff;
+}
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+  outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent);
+}
+.help { color: var(--fg-muted); font-size: 0.8rem; }
+.required { color: var(--reject); margin-left: 0.2rem; }
+
+/* ---------------- Cards / detail ---------------- */
+.ticket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+.card-wide { grid-column: 1 / -1; }
+.card h3 { margin-top: 0; }
+.payload-pre { font-size: 0.85rem; }
+
+/* ---------------- Decision panel ---------------- */
+.decision-panel { display: grid; gap: 0.4rem; }
+.decision-row { font-size: 0.95rem; }
+.rule-tag {
+  background: #eef4fb; color: var(--accent); margin-right: 0.3rem;
+  padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85rem;
+}
+
+/* ---------------- Stages ---------------- */
+.stages-panel h3 { margin-top: 0; }
+.stages-list {
+  list-style: none; padding: 0; display: grid; gap: 0.6rem;
+}
+.stage {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  background: #fff;
+}
+.stage-row { display: flex; justify-content: space-between; align-items: center; }
+.stage-name { font-weight: 600; }
+.stage-active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.stage-note { font-style: italic; color: var(--fg-muted); margin: 0.4rem 0 0; }
+.stage-meta { color: var(--fg-muted); font-size: 0.8rem; margin: 0.2rem 0 0; }
+.stage-actions { display: grid; gap: 0.4rem; margin-top: 0.6rem; }
+.stage-actions textarea {
+  width: 100%; padding: 0.5rem; border: 1px solid var(--border);
+  border-radius: var(--radius); font: inherit;
+}
+
+/* ---------------- Errors ---------------- */
+.error { color: var(--reject); }
+.error-block {
+  background: #fff5f3; color: var(--reject); padding: 0.7rem 0.9rem;
+  border-radius: var(--radius); white-space: pre-wrap; font-size: 0.85rem;
+  border: 1px solid #f3c8c4;
+}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 720px) {
+  .ticket-grid { grid-template-columns: 1fr; }
+  .org-card { grid-template-columns: 1fr; gap: 0.2rem; }
+}
