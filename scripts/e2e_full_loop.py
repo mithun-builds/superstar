@@ -82,7 +82,18 @@ def main() -> int:
             "confidence_threshold": 0.85,
             "require_citation": True,
             "shadow_mode": False,  # so /decide/ actually applies the decision
-            "system_prompt": "You decide based on retrieved rules. Output JSON only.",
+            "system_prompt": (
+                "You are SuperStar's decisioning engine. Given a request payload and "
+                "retrieved rule chunks, output exactly one JSON object — nothing else.\n\n"
+                "Schema (every field required):\n"
+                '{"decision": "approve"|"reject"|"escalate", "cited_rule_ids": ["..."], '
+                '"confidence": 0.0, "reason_text": "...", "price_delta": 0, "post_actions": []}\n\n'
+                "Rules:\n"
+                "1. If a retrieved rule clearly applies → approve/reject with that rule_id cited.\n"
+                "2. If no retrieved rule applies → escalate with cited_rule_ids: [] and confidence ≤ 0.5.\n"
+                "3. Cite only rule_ids that appear verbatim in retrieved chunks.\n"
+                "4. `decision` MUST be one of approve | reject | escalate — never null, never empty."
+            ),
             "is_active": True,
         },
         format="json",
@@ -170,50 +181,67 @@ def main() -> int:
     ok(f"ticket id={ticket_id[:8]}…")
 
     # -------------------------------------------------------------------
-    step("8. Run /decide/ — LLM_PROVIDER=noop returns 'escalate', materializing the chain")
+    step("8. Run /decide/ — outcome depends on the LLM backend")
     # -------------------------------------------------------------------
     r = client.post(f"/api/tickets/{ticket_id}/decide/", **headers)
     if r.status_code != 200:
         fail(f"decide failed: {r.status_code} {r.content}")
     d = r.json()
-    ok(f"decision outcome={d['outcome']}, shadow_mode={d['shadow_mode']}")
+    ok(f"decision outcome={d['outcome']}, shadow_mode={d['shadow_mode']}, "
+       f"cited={d['cited_rule_ids']}")
 
     # -------------------------------------------------------------------
-    step("9. Verify approval chain materialized")
+    step("9. Two branches: auto-decide vs escalate")
     # -------------------------------------------------------------------
-    r = client.get(f"/api/tickets/{ticket_id}/stages/", **headers)
-    assert r.status_code == 200, r.content
-    stages = r.json()["stages"]
-    if len(stages) != 2:
-        fail(f"expected 2 stages, got {len(stages)}: {stages}")
-    ok(f"{len(stages)} stages materialized; active={r.json()['active_stage_id'][:8]}…")
+    if d["outcome"] in ("approve", "reject"):
+        # Auto-decide: ticket transitions to DECIDED, no chain.
+        ticket_after = client.get(f"/api/tickets/{ticket_id}/", **headers).json()
+        if ticket_after["status"] != "decided":
+            fail(f"auto-{d['outcome']} expected status='decided', got {ticket_after['status']!r}")
+        ok(f"ticket auto-{d['outcome']}d → status=decided, no chain materialized (correct)")
 
-    # -------------------------------------------------------------------
-    step("10. Approve stage 1 → ticket transitions")
-    # -------------------------------------------------------------------
-    r = client.post(
-        f"/api/tickets/{ticket_id}/stages/{stages[0]['id']}/decide/",
-        {"decision": "approved", "note": "Looks fine."},
-        format="json",
-        **headers,
-    )
-    if r.status_code != 200:
-        fail(f"stage decide failed: {r.status_code} {r.content}")
-    out = r.json()
-    ok(f"stage 1 approved; ticket_status={out['ticket_status']}; next_stage={out['next_stage']['name']}")
+        # Audit trail
+        events = AuditEvent.objects.filter(subject_id=ticket_id).order_by("created_at")
+        for e in events:
+            print(f"  {DIM}{e.created_at:%H:%M:%S}{RESET}  {BOLD}{e.event_type}{RESET}  {e.data}")
+        if events.count() < 3:
+            fail(f"expected ≥3 audit events, got {events.count()}")
+        ok(f"{events.count()} audit events recorded")
+        print(f"\n{GREEN}{BOLD}All steps passed (auto-decide branch).{RESET}")
+        return 0
 
-    # -------------------------------------------------------------------
-    step("11. Audit trail")
-    # -------------------------------------------------------------------
-    events = AuditEvent.objects.filter(subject_id=ticket_id).order_by("created_at")
-    for e in events:
-        print(f"  {DIM}{e.created_at:%H:%M:%S}{RESET}  {BOLD}{e.event_type}{RESET}  {e.data}")
-    if events.count() < 3:
-        fail(f"expected ≥3 audit events for ticket, got {events.count()}")
-    ok(f"{events.count()} audit events recorded")
+    if d["outcome"] in ("escalate", "error"):
+        # Escalate / error: chain materializes, humans take over.
+        r = client.get(f"/api/tickets/{ticket_id}/stages/", **headers)
+        assert r.status_code == 200, r.content
+        stages = r.json()["stages"]
+        if len(stages) != 2:
+            fail(f"expected 2 stages on {d['outcome']}, got {len(stages)}: {stages}")
+        ok(f"{len(stages)} stages materialized; active={r.json()['active_stage_id'][:8]}…")
 
-    print(f"\n{GREEN}{BOLD}All steps passed.{RESET}")
-    return 0
+        # Approve stage 1
+        r = client.post(
+            f"/api/tickets/{ticket_id}/stages/{stages[0]['id']}/decide/",
+            {"decision": "approved", "note": "Looks fine."},
+            format="json",
+            **headers,
+        )
+        if r.status_code != 200:
+            fail(f"stage decide failed: {r.status_code} {r.content}")
+        out = r.json()
+        ok(f"stage 1 approved; ticket_status={out['ticket_status']}; next_stage={out['next_stage']['name']}")
+
+        # Audit trail
+        events = AuditEvent.objects.filter(subject_id=ticket_id).order_by("created_at")
+        for e in events:
+            print(f"  {DIM}{e.created_at:%H:%M:%S}{RESET}  {BOLD}{e.event_type}{RESET}  {e.data}")
+        if events.count() < 5:
+            fail(f"expected ≥5 audit events on the escalate path, got {events.count()}")
+        ok(f"{events.count()} audit events recorded")
+        print(f"\n{GREEN}{BOLD}All steps passed (escalate branch).{RESET}")
+        return 0
+
+    fail(f"unrecognized outcome: {d['outcome']!r}")
 
 
 if __name__ == "__main__":

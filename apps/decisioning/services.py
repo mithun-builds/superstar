@@ -244,8 +244,12 @@ def _record(
 def _apply_to_ticket(ticket: Ticket, decision: Decision) -> None:
     """Mutate ticket status based on a decision. Only called when not in shadow.
 
-    On escalate: materializes the approval chain so the human reviewers
-    have their stages set up immediately.
+    Outcomes:
+    - APPROVED / REJECTED → ticket moves to DECIDED with a summary, no chain.
+    - ESCALATED → ticket moves to ESCALATED, approval chain materialized.
+    - ERROR → treated identically to ESCALATED. A failed LLM call should
+      send the ticket to humans, not leave it stuck in OPEN. The Decision
+      row's reason_text carries the error detail for the audit trail.
     """
     from apps.audit.services import log_event
 
@@ -255,7 +259,7 @@ def _apply_to_ticket(ticket: Ticket, decision: Decision) -> None:
     elif decision.outcome == Decision.Outcome.REJECTED:
         ticket.status = Ticket.Status.DECIDED
         ticket.decision_summary = decision.reason_text
-    elif decision.outcome == Decision.Outcome.ESCALATED:
+    elif decision.outcome in (Decision.Outcome.ESCALATED, Decision.Outcome.ERROR):
         ticket.status = Ticket.Status.ESCALATED
     ticket.updated_at = timezone.now()
     ticket.save(update_fields=["status", "decision_summary", "updated_at"])
@@ -267,9 +271,9 @@ def _apply_to_ticket(ticket: Ticket, decision: Decision) -> None:
         data={"decision_id": str(decision.id), "outcome": decision.outcome, "new_status": ticket.status},
     )
 
-    # Materialize the approval chain on escalation so reviewers have something
-    # to act on. Idempotent — re-escalation is a no-op.
-    if decision.outcome == Decision.Outcome.ESCALATED:
+    # Materialize the approval chain on escalation AND on error so reviewers
+    # always have stages to act on. Idempotent — re-escalation is a no-op.
+    if decision.outcome in (Decision.Outcome.ESCALATED, Decision.Outcome.ERROR):
         from apps.tickets.approval import materialize_stages
 
         materialize_stages(ticket)
