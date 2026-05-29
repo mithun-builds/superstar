@@ -50,6 +50,10 @@ frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 frontend/coverage/
+# tsc emit output — Vite bundles, tsc only type-checks (noEmit).
+# Keep src/*.js out so emitted artifacts never land.
+frontend/src/**/*.js
+frontend/tsconfig.tsbuildinfo
 
 # IDE
 .idea/
