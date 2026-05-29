@@ -106,9 +106,18 @@ class StageDecisionSerializer(serializers.Serializer):
 # Replaces /api/tickets/plugins/ (which read from filesystem).
 # ---------------------------------------------------------------------------
 class TicketTypeFieldSerializer(serializers.ModelSerializer):
+    """Read-only field shape for the requester-side form discovery.
+
+    The model column is `field_type` (Python avoids shadowing `type`), but
+    the public API exposes it as `type` — that's the contract the React
+    DynamicForm component reads. The admin-side serializer uses the
+    `field_type` name on purpose (admin UI mirrors the DB column names).
+    """
+    type = serializers.CharField(source="field_type", read_only=True)
+
     class Meta:
         model = TicketTypeField
-        fields = ["name", "field_type", "label", "required", "choices", "help_text", "order"]
+        fields = ["name", "type", "label", "required", "choices", "help_text", "order"]
 
 
 class TicketTypeDiscoverySerializer(serializers.ModelSerializer):
