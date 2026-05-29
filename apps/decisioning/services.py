@@ -43,9 +43,31 @@ TOP_K = 8
 
 
 def decide(*, ticket: Ticket, system_prompt: str) -> Decision:
-    """Run the decisioning loop for one ticket. Always writes a Decision row."""
+    """Run the decisioning loop for one ticket. Always writes a Decision row.
+
+    Reads `shadow_mode` and `confidence_threshold` from the TicketType row
+    (DB-native config). Settings-level DECISIONING defaults remain as
+    fallbacks for tests or deployments without a configured TicketType.
+    """
+    from apps.tickets.services import TicketTypeNotFound, get_ticket_type
+
+    try:
+        tt = get_ticket_type(org=ticket.org, identifier=ticket.ticket_type)
+        confidence_threshold = tt.confidence_threshold
+        shadow_mode = tt.shadow_mode
+    except TicketTypeNotFound:
+        # Should not happen — viewset validates before calling — but fall back
+        # to settings defaults so the function is callable from contexts that
+        # don't go through the viewset (tests, background jobs).
+        confidence_threshold = float(settings.DECISIONING["CONFIDENCE_THRESHOLD"])
+        shadow_mode = bool(settings.DECISIONING["SHADOW_MODE"])
+
     chunks = _retrieve(ticket, top_k=TOP_K)
 
+    # ----- single pass to compute (outcome, response, guard_note) -----
+    outcome: str
+    guard_note: str = ""
+    response: DecisionResponse | None
     try:
         client = get_llm_client()
         response = client.decide(
@@ -63,91 +85,72 @@ def decide(*, ticket: Ticket, system_prompt: str) -> Decision:
         )
     except LLMError as exc:
         logger.exception("LLM call failed for ticket %s", ticket.id)
-        return _record(
-            ticket=ticket,
-            outcome=Decision.Outcome.ERROR,
-            response=None,
-            chunks=chunks,
-            error=str(exc),
-        )
+        outcome = Decision.Outcome.ERROR
+        guard_note = f"LLM error: {exc}"
+        response = None
 
-    # Guard 1: citation present
-    if not response.cited_rule_ids:
-        return _record(
-            ticket=ticket,
-            outcome=Decision.Outcome.ESCALATED,
-            response=dc_replace(response, reason_text="No rule_ids cited."),
-            chunks=chunks,
-        )
+    if response is not None:
+        # Guard 1: citation present
+        if not response.cited_rule_ids:
+            outcome = Decision.Outcome.ESCALATED
+            response = dc_replace(response, reason_text="No rule_ids cited.")
+            guard_note = "No rule_ids cited."
+        else:
+            # Guard 2: citation verification — every cited id must appear in retrieved chunks.
+            retrieved_ids = {c.rule_id for c in chunks}
+            unknown = [r for r in response.cited_rule_ids if r not in retrieved_ids]
+            if unknown:
+                logger.warning(
+                    "Hallucinated rule_ids in decision for ticket %s: %s", ticket.id, unknown
+                )
+                outcome = Decision.Outcome.ESCALATED
+                guard_note = f"Hallucinated rule_ids: {unknown}"
+            else:
+                # Guard 3: applicability — each cited rule's applies_when must match the payload.
+                from superstar.applies_when import applies_to
 
-    # Guard 2: citation verification — every cited id must appear in retrieved chunks.
-    retrieved_ids = {c.rule_id for c in chunks}
-    unknown = [r for r in response.cited_rule_ids if r not in retrieved_ids]
-    if unknown:
-        logger.warning("Hallucinated rule_ids in decision for ticket %s: %s", ticket.id, unknown)
-        return _record(
-            ticket=ticket,
-            outcome=Decision.Outcome.ESCALATED,
-            response=response,
-            chunks=chunks,
-            note=f"Hallucinated rule_ids: {unknown}",
-        )
+                chunks_by_id = {c.rule_id: c for c in chunks}
+                failures: list[str] = []
+                for cite_id in response.cited_rule_ids:
+                    rule = chunks_by_id[cite_id]
+                    conditions = (rule.extra or {}).get("applies_when") if hasattr(rule, "extra") else None
+                    ok, reasons = applies_to(conditions, ticket.payload)
+                    if not ok:
+                        failures.append(f"{cite_id}: {'; '.join(reasons)}")
 
-    # Guard 3: applicability verification — each cited rule's applies_when
-    # conditions must be satisfied by the request payload. Catches cases
-    # where the model picks a structurally-valid rule that doesn't cover
-    # this request (e.g. citing the PU-finish rule for a Laminate request).
-    from superstar.applies_when import applies_to
+                if failures:
+                    logger.info(
+                        "Cited rules failed applies_when for ticket %s: %s", ticket.id, failures
+                    )
+                    outcome = Decision.Outcome.ESCALATED
+                    guard_note = f"Inapplicable citations: {failures}"
+                elif response.confidence < confidence_threshold:
+                    # Guard 4: confidence threshold
+                    outcome = Decision.Outcome.ESCALATED
+                    guard_note = (
+                        f"Confidence {response.confidence:.3f} below threshold {confidence_threshold}"
+                    )
+                else:
+                    # All guards passed — honor the model's decision.
+                    outcome = {
+                        "approve": Decision.Outcome.APPROVED,
+                        "reject": Decision.Outcome.REJECTED,
+                        "escalate": Decision.Outcome.ESCALATED,
+                    }[response.decision]
 
-    chunks_by_id = {c.rule_id: c for c in chunks}
-    applicability_failures: list[str] = []
-    for cite_id in response.cited_rule_ids:
-        rule = chunks_by_id[cite_id]
-        conditions = (rule.extra or {}).get("applies_when") if hasattr(rule, "extra") else None
-        # RuleChunk stores frontmatter splat in `extra` (everything not pulled
-        # into typed columns). If applies_when wasn't captured, the rule has
-        # no constraints — pass.
-        ok, reasons = applies_to(conditions, ticket.payload)
-        if not ok:
-            applicability_failures.append(f"{cite_id}: {'; '.join(reasons)}")
-
-    if applicability_failures:
-        logger.info("Cited rules failed applies_when check for ticket %s: %s",
-                    ticket.id, applicability_failures)
-        return _record(
-            ticket=ticket,
-            outcome=Decision.Outcome.ESCALATED,
-            response=response,
-            chunks=chunks,
-            note=f"Inapplicable citations: {applicability_failures}",
-        )
-
-    # Guard 4: confidence threshold
-    threshold = float(settings.DECISIONING["CONFIDENCE_THRESHOLD"])
-    if response.confidence < threshold:
-        return _record(
-            ticket=ticket,
-            outcome=Decision.Outcome.ESCALATED,
-            response=response,
-            chunks=chunks,
-            note=f"Confidence {response.confidence:.3f} below threshold {threshold}",
-        )
-
-    # All guards passed — record the decision.
-    outcome_map = {
-        "approve": Decision.Outcome.APPROVED,
-        "reject": Decision.Outcome.REJECTED,
-        "escalate": Decision.Outcome.ESCALATED,
-    }
+    # ----- single record + conditional apply -----
     decision = _record(
         ticket=ticket,
-        outcome=outcome_map[response.decision],
+        outcome=outcome,
         response=response,
         chunks=chunks,
+        note=guard_note,
     )
+    if decision.shadow_mode != shadow_mode:
+        decision.shadow_mode = shadow_mode
+        decision.save(update_fields=["shadow_mode"])
 
-    # Apply to ticket only if not shadow mode.
-    if not settings.DECISIONING["SHADOW_MODE"]:
+    if not shadow_mode:
         _apply_to_ticket(ticket, decision)
 
     return decision
@@ -167,10 +170,12 @@ def _retrieve(ticket: Ticket, *, top_k: int) -> list[RuleChunk]:
 
     query_vec = embed(query_text)
 
+    from pgvector.django import CosineDistance
+
     return list(
         RuleChunk.objects
         .filter(org=ticket.org, plugin_identifier=ticket.ticket_type)
-        .order_by(RuleChunk.embedding.cosine_distance(query_vec))[:top_k]
+        .order_by(CosineDistance("embedding", query_vec))[:top_k]
     )
 
 
