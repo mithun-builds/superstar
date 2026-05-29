@@ -286,3 +286,90 @@ pre {
 @media (max-width: 720px) {
   .grid-two { grid-template-columns: 1fr; }
 }
+
+/* ---------------- Markdown editor split ---------------- */
+.md-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.md-split textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+.md-preview-pane {
+  background: #fdfdfe;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.85rem;
+  overflow: auto;
+  max-height: 28rem;
+}
+.md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 {
+  margin-top: 0.6em; margin-bottom: 0.3em;
+}
+.md-preview h1 { font-size: 1.3em; }
+.md-preview h2 { font-size: 1.15em; }
+.md-preview h3 { font-size: 1.05em; }
+.md-preview p, .md-preview ul, .md-preview ol { margin: 0.4em 0; }
+.md-preview code { background: #f0f0f3; }
+.md-preview pre code { background: transparent; }
+.md-preview blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.7rem;
+  color: var(--fg-muted);
+  margin: 0.4em 0;
+}
+
+@media (max-width: 800px) {
+  .md-split { grid-template-columns: 1fr; }
+}
+
+/* ---------------- applies_when builder ---------------- */
+.applies-when-builder { display: grid; gap: 0.5rem; }
+.applies-when-builder p.small { font-size: 0.8em; }
+
+.cond-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.6fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.3rem 0.4rem;
+  background: #fdfdfe;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.cond-row > input, .cond-row > select {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  background: #fff;
+}
+/* Two-input "between" — collapse the value column into two halves */
+.cond-value-half {
+  display: inline-block;
+}
+.cond-row:has(.cond-value-half) {
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.8fr auto;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  color: var(--reject);
+  font: inherit;
+}
+.btn-icon:hover { background: #fff5f3; }
+
+@media (max-width: 720px) {
+  .cond-row, .cond-row:has(.cond-value-half) {
+    grid-template-columns: 1fr;
+  }
+}

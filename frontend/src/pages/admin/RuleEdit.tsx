@@ -8,8 +8,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useApi, useMutation } from "../../api/hooks";
-import type { AdminRule } from "../../api/types";
+import type { AdminRule, AdminTicketType } from "../../api/types";
 import { useOrgRequired } from "../../contexts/OrgContext";
+import AppliesWhenBuilder from "../../components/AppliesWhenBuilder";
+import MarkdownPreview from "../../components/MarkdownPreview";
 
 export default function RuleEdit() {
   const orgSlug = useOrgRequired();
@@ -18,17 +20,24 @@ export default function RuleEdit() {
   const path = `/api/admin/ticket-types/${ticketTypeId}/rules/${ruleId}/`;
   const ruleState = useApi<AdminRule>(path, { orgSlug });
 
+  // Fetch the parent ticket type so the AppliesWhenBuilder can offer
+  // its actual field names as autocomplete (admins don't have to type the
+  // payload key names from memory, and they can't typo them silently).
+  const ttState = useApi<AdminTicketType>(
+    `/api/admin/ticket-types/${ticketTypeId}/`,
+    { orgSlug },
+  );
+
   const [form, setForm] = useState<{
     title: string;
     body: string;
     decision_hint: AdminRule["decision_hint"];
     price_delta: string;
     post_actions_text: string;
-    applies_when_text: string;
+    applies_when: Record<string, unknown>;
     category: string;
     subcategory: string;
   } | null>(null);
-  const [appliesError, setAppliesError] = useState<string | null>(null);
 
   // Hydrate the form when the rule loads.
   useEffect(() => {
@@ -39,7 +48,7 @@ export default function RuleEdit() {
       decision_hint: ruleState.data.decision_hint,
       price_delta: ruleState.data.price_delta,
       post_actions_text: ruleState.data.post_actions.join("\n"),
-      applies_when_text: JSON.stringify(ruleState.data.applies_when ?? {}, null, 2),
+      applies_when: (ruleState.data.applies_when as Record<string, unknown>) ?? {},
       category: ruleState.data.category,
       subcategory: ruleState.data.subcategory,
     });
@@ -47,16 +56,6 @@ export default function RuleEdit() {
 
   const save = useMutation(async () => {
     if (!form) return null;
-    let applies_when: Record<string, unknown> = {};
-    try {
-      applies_when = form.applies_when_text.trim()
-        ? JSON.parse(form.applies_when_text)
-        : {};
-      setAppliesError(null);
-    } catch (e) {
-      setAppliesError("applies_when must be valid JSON: " + (e instanceof Error ? e.message : String(e)));
-      throw new Error("Invalid applies_when JSON");
-    }
 
     const out = await api<AdminRule>(path, {
       method: "PATCH",
@@ -70,7 +69,7 @@ export default function RuleEdit() {
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean),
-        applies_when,
+        applies_when: form.applies_when,
         category: form.category,
         subcategory: form.subcategory,
       },
@@ -126,17 +125,22 @@ export default function RuleEdit() {
 
         <div className="form-field">
           <label>Body (markdown — what the LLM sees)</label>
-          <textarea
-            rows={12}
-            value={form.body}
-            onChange={(e) => setForm({ ...form, body: e.target.value })}
-            placeholder="## Rule&#10;&#10;Describe the rule and its conditions in plain language.&#10;&#10;## Decision&#10;&#10;..."
-          />
+          <div className="md-split">
+            <textarea
+              rows={14}
+              value={form.body}
+              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              placeholder="## Rule&#10;&#10;Describe the rule and its conditions in plain language.&#10;&#10;## Decision&#10;&#10;..."
+            />
+            <div className="md-preview-pane">
+              <MarkdownPreview source={form.body} />
+            </div>
+          </div>
           <small className="help">
-            This is the text the LLM reads when retrieving this rule. Be specific
-            about conditions and outcomes. The decisioning service also enforces
-            the structured <code>applies_when</code> block below — both must
-            agree.
+            Left: source. Right: rendered preview. This is the text the LLM
+            reads when retrieving this rule. The decisioning service also
+            enforces the structured <code>applies_when</code> block below —
+            both must agree.
           </small>
         </div>
 
@@ -196,27 +200,17 @@ export default function RuleEdit() {
         </div>
 
         <div className="form-field">
-          <label>
-            applies_when — structured conditions (JSON)
-          </label>
-          <textarea
-            rows={10}
-            value={form.applies_when_text}
-            onChange={(e) => setForm({ ...form, applies_when_text: e.target.value })}
-            spellCheck={false}
-            style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
-            placeholder={`{\n  "request_type": "lock",\n  "shutter_finish": {"not_in": ["PU", "Membrane"]}\n}`}
+          <label>applies_when — structured conditions</label>
+          <AppliesWhenBuilder
+            value={form.applies_when}
+            onChange={(applies_when) => setForm({ ...form, applies_when })}
+            knownFieldNames={ttState.data?.fields.map((f) => f.name) ?? []}
           />
           <small className="help">
-            DSL operators: bare scalar = equality, list = membership,{" "}
-            <code>{`{gte/gt/lte/lt: N}`}</code>,{" "}
-            <code>{`{between: [a, b]}`}</code>,{" "}
-            <code>{`{not_in: [...]}`}</code>,{" "}
-            <code>{`{not: x}`}</code>,{" "}
-            <code>{`{has_any: [...]}`}</code>.
-            See <code>docs/plugins.md</code>.
+            Each row is checked at decision time. ALL rows must match the
+            request payload for this rule to apply. Field dropdown is
+            populated from this ticket type's schema fields.
           </small>
-          {appliesError && <p className="error">{appliesError}</p>}
         </div>
 
         <div className="btn-row">
@@ -224,11 +218,7 @@ export default function RuleEdit() {
             type="button"
             className="btn btn-primary"
             disabled={save.loading}
-            onClick={() =>
-              save.call(undefined).catch(() => {
-                /* errors surface via save.error + appliesError */
-              })
-            }
+            onClick={() => save.call(undefined).catch(() => undefined)}
           >
             {save.loading ? "Saving…" : "Save rule"}
           </button>
