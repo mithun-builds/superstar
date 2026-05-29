@@ -53,6 +53,19 @@ class RuleAdminViewSet(viewsets.ModelViewSet):
     serializer_class = RuleChunkSerializer
     permission_classes = [IsOrgAdmin]
 
+    def initial(self, request, *args, **kwargs):
+        """Validate parent ticket-type exists in this org BEFORE any handler runs.
+
+        Without this, a GET list against a foreign-org parent would silently
+        return [] instead of 404 — making the boundary feel like a missing
+        permission rather than the not-found semantic the create/detail
+        paths already use.
+        """
+        super().initial(request, *args, **kwargs)
+        if getattr(request, "org", None) is None:
+            return  # IsOrgAdmin will have already rejected
+        _resolve_ticket_type(self.kwargs, request.org)
+
     def get_queryset(self):  # type: ignore[override]
         org = getattr(self.request, "org", None)
         if org is None:

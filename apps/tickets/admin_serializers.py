@@ -79,3 +79,21 @@ class TicketTypeAdminSerializer(serializers.ModelSerializer):
                 "lowercase letters, digits, dots, dashes, underscores."
             )
         return v
+
+    def validate(self, attrs: dict) -> dict:
+        # Django 5's UniqueConstraint isn't auto-promoted into a DRF
+        # UniqueTogetherValidator — surface the (org, identifier) uniqueness
+        # at the validation layer so duplicates return 400, not 500 from
+        # a downstream IntegrityError.
+        request = self.context.get("request")
+        org = getattr(request, "org", None) if request else None
+        identifier = attrs.get("identifier") or (self.instance.identifier if self.instance else None)
+        if org and identifier:
+            existing = TicketType.objects.filter(org=org, identifier=identifier)
+            if self.instance is not None:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                raise serializers.ValidationError(
+                    {"identifier": f"Identifier {identifier!r} already in use in this org."}
+                )
+        return attrs

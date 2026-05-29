@@ -82,7 +82,17 @@ def materialize_stages(ticket: Ticket) -> list[ApprovalStage]:
 
 
 def current_stage(ticket: Ticket) -> ApprovalStage | None:
-    """The lowest-order pending stage, or None if the chain is done."""
+    """The lowest-order pending stage, or None if the chain is done.
+
+    "Done" includes both natural completion (all stages decided) and
+    early termination (the ticket transitioned to APPROVED, REJECTED, or
+    CLOSED — meaning a rejection stopped the chain or the final stage
+    closed it). In those cases later pending stages exist as historical
+    placeholders but aren't actionable.
+    """
+    terminal = {Ticket.Status.APPROVED, Ticket.Status.REJECTED, Ticket.Status.CLOSED}
+    if ticket.status in terminal:
+        return None
     return ticket.stages.filter(status=ApprovalStage.Status.PENDING).order_by("order").first()
 
 
