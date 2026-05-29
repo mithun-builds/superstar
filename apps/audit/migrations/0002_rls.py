@@ -1,9 +1,7 @@
 """RLS on AuditEvent.
 
-`org_id` is nullable on AuditEvent (platform-level events have no org). The
-policy allows nullable rows through *and* rows matching the current
-`app.org_id`. That way platform-level audit events (KB ingest by a
-superuser, config reload) are still readable by the admin path.
+`org_id` is nullable on AuditEvent (platform-level events have no org).
+The policy allows null rows AND rows matching the current `app.org_id`.
 """
 from __future__ import annotations
 

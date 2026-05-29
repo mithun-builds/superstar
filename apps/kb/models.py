@@ -25,7 +25,19 @@ from apps.tenants.models import Org
 class RuleChunk(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="rule_chunks")
-    plugin_identifier = models.CharField(max_length=100, db_index=True)
+    ticket_type = models.ForeignKey(
+        "tickets.TicketType",
+        on_delete=models.CASCADE,
+        related_name="rules",
+        null=True,
+        blank=True,
+        help_text="Nullable for migration safety. New rules created via the admin UI always set this.",
+    )
+    plugin_identifier = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text="Denormalized copy of ticket_type.identifier — kept for backward-compat queries.",
+    )
     rule_id = models.CharField(max_length=120, db_index=True)
     source_path = models.CharField(max_length=500, blank=True, help_text="Origin marker — set if imported from a file, blank if created via UI.")
     title = models.CharField(max_length=300, blank=True)

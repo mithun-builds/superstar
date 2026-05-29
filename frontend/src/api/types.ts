@@ -95,3 +95,62 @@ export interface Paginated<T> {
   previous: string | null;
   results: T[];
 }
+
+// ---------------------------------------------------------------------------
+// Admin shapes — for the /api/admin/* endpoints. Editable counterparts of
+// the discovery shapes above.
+// ---------------------------------------------------------------------------
+
+export interface AdminTicketTypeField {
+  id: string;
+  order: number;
+  name: string;
+  field_type: "string" | "int" | "bool" | "text" | "enum";
+  label: string;
+  required: boolean;
+  choices: string[];
+  help_text: string;
+}
+
+export interface AdminWorkflowStage {
+  id: string;
+  order: number;
+  name: string;
+  approvers: string[];
+  mode: "any_member" | "unanimous_team" | "majority" | "specific_user";
+  sla_hours: number | null;
+}
+
+export interface AdminTicketType {
+  id: string;
+  identifier: string;
+  display_name: string;
+  description: string;
+  sequential: boolean;
+  ai_enabled: boolean;
+  confidence_threshold: number;
+  require_citation: boolean;
+  shadow_mode: boolean;
+  system_prompt: string;
+  notifications: Record<string, unknown>;
+  is_active: boolean;
+  fields: AdminTicketTypeField[];
+  workflow_stages: AdminWorkflowStage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminRule {
+  id: string;
+  rule_id: string;
+  title: string;
+  body: string;
+  category: string;
+  subcategory: string;
+  decision_hint: "approve" | "reject" | "escalate" | "";
+  price_delta: string;
+  post_actions: string[];
+  applies_when: Record<string, unknown> | null;
+  extra: Record<string, unknown>;
+  ingested_at: string;
+}

@@ -248,3 +248,41 @@ pre {
   .ticket-grid { grid-template-columns: 1fr; }
   .org-card { grid-template-columns: 1fr; gap: 0.2rem; }
 }
+
+/* ---------------- Admin pages ---------------- */
+.checkbox-row {
+  display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 0.5rem 0 0.75rem;
+  font-size: 0.9rem;
+}
+.checkbox-row label { display: flex; align-items: center; gap: 0.35rem; font-weight: normal; }
+.checkbox-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; }
+
+.row-edit {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0.4rem 0;
+  display: grid; gap: 0.5rem;
+}
+.row-new { border-style: dashed; background: #fafafd; }
+.row-inputs {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+}
+.row-inputs input, .row-inputs select {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  background: #fff;
+}
+.input-tiny { width: 5rem; }
+.input-narrow { width: 12rem; }
+
+.grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 720px) {
+  .grid-two { grid-template-columns: 1fr; }
+}

@@ -20,6 +20,7 @@ export default function Layout() {
             <nav className="header-nav">
               <Link to={`/o/${slug}`}>Tickets</Link>
               <Link to={`/o/${slug}/new`}>New ticket</Link>
+              <Link to={`/o/${slug}/admin/ticket-types`}>Admin</Link>
             </nav>
           </>
         )}

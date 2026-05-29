@@ -13,5 +13,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("apps.accounts.urls", namespace="accounts")),
     path("api/", include("apps.tickets.urls", namespace="tickets")),
+    # Admin (org-side, not Django superuser admin) — ticket-type + rules CRUD.
+    path("api/admin/", include("apps.tickets.admin_urls", namespace="tickets_admin")),
+    path("api/admin/", include("apps.kb.urls", namespace="kb_admin")),
     path("o/<slug:org_slug>/", include("apps.tenants.urls", namespace="tenants")),
 ]
