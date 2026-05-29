@@ -1,70 +1,58 @@
 # Roadmap
 
-SuperStar is in **Phase 0** as of 2026-05-25. Target for HomeLane NSD.AI
-production go-live: ~3-4 months from start of Phase 1.
-
-## Phase 0 — scaffold (current, ~1 week)
+## Phase 0 — scaffold ✅
 
 - [x] Repo + OSS hygiene (LICENSE, README, CONTRIBUTING, SECURITY)
 - [x] Django config layer (settings, urls, wsgi, asgi, celery)
 - [x] Multi-tenant primitives (Org, OrgMembership, TenantMiddleware)
 - [x] LLMClient interface + Ollama / vLLM / noop backends
-- [x] Plugin contract (declarative + imperative)
 - [x] Apps scaffolded with real models (tickets, kb, decisioning, audit, accounts)
 - [x] Frontend skeleton (React + Vite + TS)
-- [x] Demo config: IT Access Request KB
 - [x] CI workflow (GitHub Actions)
-- [ ] First migration set written (incl. hand-written RLS migration)
-- [ ] kb_ingest management command
-- [ ] Eval harness skeleton
+- [x] Initial migrations + RLS migrations
 
-## Phase 1 — core ticketing (3-4 weeks)
+## Phase 1 — core ticketing ✅ (backend) + 🚧 (admin UI)
 
-- Ticket create / list / detail API + UI
-- Sequential approval chain execution + per-stage modes
-- Plugin loader: read SUPERSTAR_CONFIG_DIR at startup, register declarative plugins
-- Tenant onboarding flow (Org + first OrgMembership)
-- Audit log writes from all state transitions
-- RLS verification tests (Postgres-level isolation)
+- [x] Ticket REST API (list / create / detail / decide)
+- [x] Sequential approval chain execution + decide endpoint
+- [x] Audit log helper wired to all state transitions
+- [x] **DB-native tenant config** (TicketType + TicketTypeField + WorkflowStage)
+- [x] Decisioning loop with four-guard pipeline:
+      citation present → cited rules retrieved → applies_when matches → confidence threshold
+- [x] `applies_when` DSL evaluator + 26 unit tests
+- [x] `create_tenant` management command
+- [x] Frontend: org picker, ticket list, dynamic plugin-driven form, ticket detail with decision card + inline approve/reject
+- [ ] **Admin UI for ticket-type configuration** (next deliverable on `wip/db-backed-config`):
+  - `/o/:slug/admin/ticket-types` (list)
+  - `/o/:slug/admin/ticket-types/new` (create — schema fields, workflow stages, AI policy, prompt)
+  - `/o/:slug/admin/ticket-types/:id` (edit)
+  - `/o/:slug/admin/ticket-types/:id/rules` (KB management for that type)
+  - `/o/:slug/admin/ticket-types/:id/rules/:id` (markdown editor + applies_when builder)
+- [ ] Admin CRUD REST API backing the above
+- [ ] RLS verification test with a non-superuser role
 
-## Phase 2 — AI decisioning (3-4 weeks)
+## Phase 2 — AI hardening + email
 
-- BGE-M3 embedding pipeline + KB ingest from markdown + frontmatter
-- Decisioning service (services.py is stubbed; wire it up end-to-end)
-- Citation verifier (mechanically check cited rule_ids against retrieved chunks)
-- Shadow mode harness — log decisions, never apply
-- Eval set + precision/recall reporting
-- Confidence calibration
+- BGE-M3 ingest hooked into rule save() so embeddings stay fresh on edit
+- Eval harness skeleton + precision/recall/refusal metrics
+- Async decisioning via Celery (`/decide/` returns 202 + polling endpoint)
+- Outbound email + Postal inbound
 
-## Phase 3 — HomeLane NSD.AI launch (2-3 weeks)
+## Phase 3 — first tenant launch
 
-- Point a SuperStar deployment at `superstar-config-homelane/nsd-ai/`
-- Validate the 12 normalized rules against 30-50 historical NSD tickets
+- Pick a real tenant (e.g. HomeLane NSD.AI) and onboard via admin UI
+- Shadow mode → live on a subset of users → full rollout
 - Tune retrieval / prompt / confidence threshold until precision ≥ 98%
-- Bangalore launch (shadow → live on a subset of designers → full Bangalore)
-- National rollout follows
-
-## Phase 4 — Email layer (3-4 weeks)
-
-- Outbound SMTP via configurable provider
-- Postal (OSS) inbound for reply-to-approve
-- Email mirroring on every ticket event
-- Template overrides per plugin
-- Phase 4 is *after* HomeLane go-live, not before — portal-only v1.
 
 ## Beyond v1
 
 - Subdomain-routed tenants (alternative to `/o/<org-slug>/...`)
 - Authentik (OSS) SSO integration
-- Sc-Pro API integration (auto-post manual-selection markers)
-- Additional HomeLane use cases (engineering ticketing, design QA, etc.)
-- Multi-use-case-per-deployment (if HL ends up with 3+ use cases and wants
-  one login across them)
+- Multi-use-case-per-deployment (an org with 3+ ticket types and one login)
+- Optional bulk import / export of ticket types (YAML or JSON) — admin convenience, not the primary configuration path
 
 ## What deliberately isn't on the roadmap
 
-- **Native mobile apps.** Web first; PWA if mobile becomes urgent.
-- **Real-time collaboration on tickets.** Out of scope for v1.
-- **Custom AI providers in v1.** `LLMClient` already supports new backends,
-  but we don't ship adapters for hosted APIs (Anthropic, OpenAI, etc.) in v1.
-  Decision: open-weight only, by design.
+- Native mobile apps. Web first; PWA if mobile becomes urgent.
+- Real-time collaboration on tickets. Out of scope for v1.
+- Custom AI providers in v1. `LLMClient` already supports new backends, but we don't ship adapters for hosted APIs (Anthropic, OpenAI, etc.). Decision: open-weight only, by design.

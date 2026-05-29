@@ -29,7 +29,7 @@ Out of scope:
 ## Hardening guidance
 
 - Always run with `DEBUG=false` in production.
-- Set `SUPERSTAR_CONFIG_DIR` to a path the running process can read but not write.
-- Postgres RLS must be enforced — verify with `SELECT relrowsecurity FROM pg_class WHERE relname = 'tickets_ticket';` (and other tenant-scoped tables).
+- Postgres RLS must be enforced — verify with `SELECT relrowsecurity FROM pg_class WHERE relname = 'tickets_ticket';` (and other tenant-scoped tables). Run SuperStar against a non-superuser DB role in production so the policies actually engage.
 - LLM endpoints used in production should never be exposed to untrusted networks. Run vLLM/Ollama behind your VPC or auth gateway.
+- Admin UI access to ticket-type and KB editing must be restricted to org owners/admins — see the `OrgMembership.role` field. Don't grant `requester`-role users access to admin endpoints.
 - Audit logs are immutable by convention; consider WORM storage for compliance use cases.

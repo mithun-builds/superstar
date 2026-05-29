@@ -27,7 +27,7 @@ class RetrievedChunk:
     rule_id: str
     text: str
     score: float
-    source_path: str  # relative to SUPERSTAR_CONFIG_DIR
+    source_path: str  # human-readable identifier (e.g. "kb_rulechunk:<id>")
 
 
 @dataclass(frozen=True)

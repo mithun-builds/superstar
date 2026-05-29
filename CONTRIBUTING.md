@@ -4,8 +4,8 @@ Thanks for the interest. SuperStar is early — feedback on the architecture is 
 
 ## Ground rules
 
-1. **No customer-specific code in this repo.** SuperStar is a generic platform. HomeLane, your-company, anyone-else's tenant config lives in *their* private directory, read at runtime via `SUPERSTAR_CONFIG_DIR`. PRs that hardcode customer assumptions will be asked to refactor.
-2. **No hallucinations.** Anything that touches the decisioning loop must preserve the grounding contract: cite rule_ids, verify citations against retrieved chunks, escalate when uncertain.
+1. **No customer-specific code in this repo.** SuperStar is a generic platform. Tenants — HomeLane, your-company, anyone else — configure themselves entirely through the SuperStar admin UI. Their data lives in their deployment's Postgres, not in YAML files. PRs that hardcode customer assumptions or add per-customer code paths will be asked to refactor.
+2. **No hallucinations.** Anything that touches the decisioning loop must preserve the four-guard contract: cite rule_ids, verify citations against retrieved chunks, check `applies_when` against the payload, respect the confidence threshold.
 3. **Multi-tenant or it doesn't ship.** Every user-facing model has an `org_id`. RLS policies are part of the migration, not a follow-up.
 
 ## Dev setup
@@ -30,13 +30,13 @@ python manage.py test
 
 Every PR needs tests. RAG/decisioning changes need eval harness updates — see [`docs/eval.md`](docs/eval.md).
 
-## Plugin contracts
+## Adding a ticket type
 
-New ticket types are plugins. See [`docs/plugins.md`](docs/plugins.md) for the contract. PRs that hardcode a ticket type into the core will be redirected to the plugin layer.
+You don't. Ticket types are runtime configuration, not code. Create them via the admin UI inside a deployed SuperStar instance. If a *new capability* is needed for ticket types in general (e.g. a new field type, a new approval mode, a new `applies_when` operator), that's a PR — extend the model / DSL evaluator / serializer.
 
 ## Reporting bugs
 
-GitHub issues. Include: SuperStar version, Python version, the minimal config that reproduces, what you expected vs. what happened.
+GitHub issues. Include: SuperStar version, Python version, the minimal repro, what you expected vs. what happened.
 
 ## Security
 

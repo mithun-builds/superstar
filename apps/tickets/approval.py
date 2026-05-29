@@ -30,9 +30,8 @@ from typing import TYPE_CHECKING
 from django.db import transaction
 from django.utils import timezone
 
-from superstar.plugins import get_plugin
-
 from .models import ApprovalStage, Ticket
+from .services import get_ticket_type
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
@@ -55,18 +54,17 @@ def materialize_stages(ticket: Ticket) -> list[ApprovalStage]:
     if existing:
         return existing
 
-    plugin = get_plugin(ticket.ticket_type)
-    contract = plugin.contract if hasattr(plugin, "contract") else plugin
+    tt = get_ticket_type(org=ticket.org, identifier=ticket.ticket_type)
 
     stages: list[ApprovalStage] = []
-    for i, stage_spec in enumerate(contract.workflow.stages, start=1):
+    for spec in tt.workflow_stages.order_by("order"):
         stages.append(
             ApprovalStage.objects.create(
                 org=ticket.org,
                 ticket=ticket,
-                order=i,
-                name=stage_spec.name,
-                mode=stage_spec.mode,
+                order=spec.order or (len(stages) + 1),
+                name=spec.name,
+                mode=spec.mode,
                 status=ApprovalStage.Status.PENDING,
             )
         )
@@ -112,9 +110,8 @@ def decide_stage(
 
     ticket = stage.ticket
     # In sequential workflows, only the current stage may be decided.
-    plugin = get_plugin(ticket.ticket_type)
-    contract = plugin.contract if hasattr(plugin, "contract") else plugin
-    if contract.workflow.sequential:
+    tt = get_ticket_type(org=ticket.org, identifier=ticket.ticket_type)
+    if tt.sequential:
         cur = current_stage(ticket)
         if cur is None or cur.id != stage.id:
             raise ApprovalError(

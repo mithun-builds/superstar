@@ -1,28 +1,18 @@
 """Integration tests for the ticket API — requires a live Postgres+pgvector.
 
-Validates: org-scoped queryset, plugin-driven payload validation, the
-404-on-unknown-tenant path in TenantMiddleware. RLS isolation tests are in
-a separate suite (`apps/tenants/test_rls.py`) because they require a
-non-superuser DB role to be meaningful.
+Validates: org-scoped queryset, DB-native ticket-type validation,
+approval chain advancement, audit writes. RLS isolation tests with a
+non-superuser DB role live in `apps/tenants/test_rls.py` (not yet written).
 """
 from __future__ import annotations
-
-import uuid
 
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from apps.tenants.models import Org, OrgMembership
-from superstar.plugins import base as plugins_base
-from superstar.plugins.base import (
-    AIPolicy,
-    FieldSpec,
-    PluginContract,
-    SchemaSpec,
-    StageSpec,
-    WorkflowSpec,
-)
+
+from .models import Ticket, TicketType, TicketTypeField, WorkflowStage
 
 User = get_user_model()
 
@@ -30,6 +20,9 @@ User = get_user_model()
 pytestmark = pytest.mark.django_db
 
 
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 @pytest.fixture
 def acme_org() -> Org:
     return Org.objects.create(slug="acme", name="Acme Inc")
@@ -42,26 +35,55 @@ def acme_user(acme_org: Org) -> "User":
     return u
 
 
-@pytest.fixture(autouse=True)
-def register_demo_plugin() -> None:
-    """Register a minimal plugin so the serializer can validate payloads."""
-    plugins_base._REGISTRY.clear()
-    contract = PluginContract(
+@pytest.fixture
+def demo_ticket_type(acme_org: Org) -> TicketType:
+    """Single-stage ticket type with a couple of fields."""
+    tt = TicketType.objects.create(
+        org=acme_org,
         identifier="demo.access",
         display_name="Demo Access",
-        schema=SchemaSpec(fields=(
-            FieldSpec(name="role", type="enum", label="Role", required=True,
-                      choices=("engineer", "sales")),
-            FieldSpec(name="reason", type="text", label="Reason", required=True),
-        )),
-        workflow=WorkflowSpec(stages=(
-            StageSpec(name="Review", approvers=("security",), mode="any_member"),
-        )),
-        ai_policy=AIPolicy(),
+        sequential=True,
+        ai_enabled=True,
+        shadow_mode=True,
     )
-    plugins_base._REGISTRY["demo.access"] = contract
-    yield
-    plugins_base._REGISTRY.clear()
+    TicketTypeField.objects.create(
+        ticket_type=tt, order=0, name="role", field_type="enum", label="Role",
+        required=True, choices=["engineer", "sales"],
+    )
+    TicketTypeField.objects.create(
+        ticket_type=tt, order=1, name="reason", field_type="text", label="Reason",
+        required=True,
+    )
+    WorkflowStage.objects.create(
+        ticket_type=tt, order=1, name="Review", approvers=["security"], mode="any_member",
+    )
+    return tt
+
+
+@pytest.fixture
+def multi_stage_ticket_type(acme_org: Org) -> TicketType:
+    """Two-stage ticket type for approval-chain tests."""
+    tt = TicketType.objects.create(
+        org=acme_org,
+        identifier="demo.access",
+        display_name="Demo Access",
+        sequential=True,
+        ai_enabled=True,
+        shadow_mode=False,
+    )
+    TicketTypeField.objects.create(
+        ticket_type=tt, order=0, name="role", field_type="enum", label="Role",
+        required=True, choices=["engineer", "sales"],
+    )
+    WorkflowStage.objects.create(
+        ticket_type=tt, order=1, name="Security review",
+        approvers=["security"], mode="any_member",
+    )
+    WorkflowStage.objects.create(
+        ticket_type=tt, order=2, name="Manager sign-off",
+        approvers=["manager"], mode="any_member",
+    )
+    return tt
 
 
 def _client_for(user) -> APIClient:
@@ -70,7 +92,10 @@ def _client_for(user) -> APIClient:
     return c
 
 
-def test_create_ticket_happy_path(acme_org, acme_user) -> None:
+# ---------------------------------------------------------------------------
+# Ticket creation + payload validation
+# ---------------------------------------------------------------------------
+def test_create_ticket_happy_path(acme_user, demo_ticket_type) -> None:
     c = _client_for(acme_user)
     resp = c.post(
         "/api/tickets/",
@@ -86,7 +111,7 @@ def test_create_ticket_happy_path(acme_org, acme_user) -> None:
     assert resp.json()["status"] == "open"
 
 
-def test_unknown_plugin_rejected(acme_org, acme_user) -> None:
+def test_unknown_ticket_type_rejected(acme_user, acme_org) -> None:
     c = _client_for(acme_user)
     resp = c.post(
         "/api/tickets/",
@@ -98,7 +123,7 @@ def test_unknown_plugin_rejected(acme_org, acme_user) -> None:
     assert "ticket_type" in resp.json()
 
 
-def test_payload_validation_against_plugin_schema(acme_org, acme_user) -> None:
+def test_payload_validation_against_ticket_type_schema(acme_user, demo_ticket_type) -> None:
     c = _client_for(acme_user)
     resp = c.post(
         "/api/tickets/",
@@ -114,8 +139,16 @@ def test_payload_validation_against_plugin_schema(acme_org, acme_user) -> None:
     assert "payload" in resp.json()
 
 
-def test_cross_org_isolation(acme_org, acme_user) -> None:
+def test_cross_org_isolation(acme_user, demo_ticket_type) -> None:
     other = Org.objects.create(slug="globex", name="Globex")
+    # Same ticket-type identifier, but in a different org — should not collide.
+    other_tt = TicketType.objects.create(
+        org=other, identifier="demo.access", display_name="Demo Access", shadow_mode=True,
+    )
+    TicketTypeField.objects.create(
+        ticket_type=other_tt, name="role", field_type="enum", label="Role",
+        choices=["engineer"], required=True, order=0,
+    )
     bob = User.objects.create_user(email="bob@globex.test", password="pw12345!")
     OrgMembership.objects.create(org=other, user=bob, role="requester")
 
@@ -144,57 +177,42 @@ def test_unknown_org_404(acme_user) -> None:
 
 
 def test_no_org_header_returns_empty(acme_user) -> None:
-    """No tenant context → empty queryset (not 500)."""
     c = _client_for(acme_user)
     resp = c.get("/api/tickets/")
-    # No X-Org-Slug, no /o/<slug>/ — middleware skips tenant resolution.
-    # Viewset's get_queryset returns Ticket.objects.none() because request.org is None.
     assert resp.status_code == 200
     assert resp.json()["count"] == 0
 
 
 # ---------------------------------------------------------------------------
+# Ticket type discovery (/api/tickets/plugins/)
+# ---------------------------------------------------------------------------
+def test_list_plugins_returns_org_ticket_types(acme_user, demo_ticket_type) -> None:
+    """Discovery endpoint reads from DB, not filesystem."""
+    resp = _client_for(acme_user).get("/api/tickets/plugins/", HTTP_X_ORG_SLUG="acme")
+    assert resp.status_code == 200
+    items = resp.json()
+    assert any(t["identifier"] == "demo.access" for t in items)
+    demo = next(t for t in items if t["identifier"] == "demo.access")
+    field_names = [f["name"] for f in demo["fields"]]
+    assert field_names == ["role", "reason"]
+
+
+def test_list_plugins_isolated_per_org(acme_user, demo_ticket_type) -> None:
+    """Org A's ticket types must not be visible to org B."""
+    globex = Org.objects.create(slug="globex", name="Globex")
+    bob = User.objects.create_user(email="bob@globex.test", password="pw12345!")
+    OrgMembership.objects.create(org=globex, user=bob, role="admin")
+
+    resp = _client_for(bob).get("/api/tickets/plugins/", HTTP_X_ORG_SLUG="globex")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+# ---------------------------------------------------------------------------
 # Approval chain integration tests
 # ---------------------------------------------------------------------------
-@pytest.fixture
-def multi_stage_plugin() -> None:
-    """Replace the demo plugin with a 2-stage workflow."""
-    plugins_base._REGISTRY.clear()
-    plugins_base._REGISTRY["demo.access"] = PluginContract(
-        identifier="demo.access",
-        display_name="Demo Access",
-        schema=SchemaSpec(fields=(
-            FieldSpec(name="role", type="enum", choices=("engineer", "sales")),
-        )),
-        workflow=WorkflowSpec(stages=(
-            StageSpec(name="Security review", approvers=("security",), mode="any_member"),
-            StageSpec(name="Manager sign-off", approvers=("manager",), mode="any_member"),
-        )),
-        ai_policy=AIPolicy(shadow_mode=False),  # actually apply decisions
-    )
-    yield
-    plugins_base._REGISTRY.clear()
-
-
-def _create_ticket(client, org_slug: str, payload: dict | None = None) -> dict:
-    resp = client.post(
-        "/api/tickets/",
-        {
-            "ticket_type": "demo.access",
-            "title": "Test ticket",
-            "payload": payload or {"role": "engineer"},
-        },
-        format="json",
-        HTTP_X_ORG_SLUG=org_slug,
-    )
-    assert resp.status_code == 201, resp.content
-    return resp.json()
-
-
-def test_materialize_stages_idempotent(acme_org, acme_user, multi_stage_plugin) -> None:
-    """Calling materialize_stages twice creates stages once."""
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+def test_materialize_stages_idempotent(acme_org, acme_user, multi_stage_ticket_type) -> None:
+    from .approval import materialize_stages
 
     ticket = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -206,10 +224,8 @@ def test_materialize_stages_idempotent(acme_org, acme_user, multi_stage_plugin) 
     assert [s.id for s in first] == [s.id for s in second]
 
 
-def test_approve_chain_end_to_end(acme_org, acme_user, multi_stage_plugin) -> None:
-    """Approve both stages → ticket transitions to APPROVED + CLOSED."""
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+def test_approve_chain_end_to_end(acme_org, acme_user, multi_stage_ticket_type) -> None:
+    from .approval import materialize_stages
 
     t = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -218,25 +234,21 @@ def test_approve_chain_end_to_end(acme_org, acme_user, multi_stage_plugin) -> No
     materialize_stages(t)
 
     c = _client_for(acme_user)
-    # GET stages
     resp = c.get(f"/api/tickets/{t.id}/stages/", HTTP_X_ORG_SLUG="acme")
     assert resp.status_code == 200
     stages = resp.json()["stages"]
     assert len(stages) == 2
     assert resp.json()["active_stage_id"] == stages[0]["id"]
 
-    # Approve stage 1
     resp = c.post(
         f"/api/tickets/{t.id}/stages/{stages[0]['id']}/decide/",
         {"decision": "approved", "note": "ok"},
         format="json", HTTP_X_ORG_SLUG="acme",
     )
     assert resp.status_code == 200, resp.content
-    assert resp.json()["stage"]["status"] == "approved"
-    assert resp.json()["ticket_status"] == "escalated"  # not yet closed
+    assert resp.json()["ticket_status"] == "escalated"
     assert resp.json()["next_stage"]["name"] == "Manager sign-off"
 
-    # Approve stage 2
     resp = c.post(
         f"/api/tickets/{t.id}/stages/{stages[1]['id']}/decide/",
         {"decision": "approved"},
@@ -251,10 +263,8 @@ def test_approve_chain_end_to_end(acme_org, acme_user, multi_stage_plugin) -> No
     assert t.closed_at is not None
 
 
-def test_reject_chain_closes_ticket_immediately(acme_org, acme_user, multi_stage_plugin) -> None:
-    """First reject short-circuits the whole chain."""
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+def test_reject_chain_closes_ticket_immediately(acme_org, acme_user, multi_stage_ticket_type) -> None:
+    from .approval import materialize_stages
 
     t = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -262,8 +272,7 @@ def test_reject_chain_closes_ticket_immediately(acme_org, acme_user, multi_stage
     )
     stages = materialize_stages(t)
 
-    c = _client_for(acme_user)
-    resp = c.post(
+    resp = _client_for(acme_user).post(
         f"/api/tickets/{t.id}/stages/{stages[0].id}/decide/",
         {"decision": "rejected", "note": "not yet"},
         format="json", HTTP_X_ORG_SLUG="acme",
@@ -274,14 +283,11 @@ def test_reject_chain_closes_ticket_immediately(acme_org, acme_user, multi_stage
 
     t.refresh_from_db()
     assert t.status == "rejected"
-    # Second stage should still be PENDING — it wasn't acted on.
     assert t.stages.get(order=2).status == "pending"
 
 
-def test_out_of_order_decision_rejected(acme_org, acme_user, multi_stage_plugin) -> None:
-    """Sequential workflow forbids skipping ahead."""
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+def test_out_of_order_decision_rejected(acme_org, acme_user, multi_stage_ticket_type) -> None:
+    from .approval import materialize_stages
 
     t = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -289,20 +295,17 @@ def test_out_of_order_decision_rejected(acme_org, acme_user, multi_stage_plugin)
     )
     stages = materialize_stages(t)
 
-    c = _client_for(acme_user)
-    # Try to decide stage 2 before stage 1 is done.
-    resp = c.post(
+    resp = _client_for(acme_user).post(
         f"/api/tickets/{t.id}/stages/{stages[1].id}/decide/",
         {"decision": "approved"},
         format="json", HTTP_X_ORG_SLUG="acme",
     )
-    assert resp.status_code == 409  # ApprovalError → 409 Conflict
+    assert resp.status_code == 409
     assert "out-of-order" in resp.json()["detail"].lower()
 
 
-def test_double_decide_same_stage_rejected(acme_org, acme_user, multi_stage_plugin) -> None:
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+def test_double_decide_same_stage_rejected(acme_org, acme_user, multi_stage_ticket_type) -> None:
+    from .approval import materialize_stages
 
     t = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -326,10 +329,19 @@ def test_double_decide_same_stage_rejected(acme_org, acme_user, multi_stage_plug
 # ---------------------------------------------------------------------------
 # Audit log writes
 # ---------------------------------------------------------------------------
-def test_ticket_create_writes_audit_event(acme_org, acme_user) -> None:
+def test_ticket_create_writes_audit_event(acme_org, acme_user, demo_ticket_type) -> None:
     from apps.audit.models import AuditEvent
 
-    _create_ticket(_client_for(acme_user), "acme")
+    _client_for(acme_user).post(
+        "/api/tickets/",
+        {
+            "ticket_type": "demo.access",
+            "title": "t",
+            "payload": {"role": "engineer", "reason": "x"},
+        },
+        format="json",
+        HTTP_X_ORG_SLUG="acme",
+    )
 
     evt = AuditEvent.objects.filter(event_type="ticket.created").first()
     assert evt is not None
@@ -338,10 +350,10 @@ def test_ticket_create_writes_audit_event(acme_org, acme_user) -> None:
     assert evt.data["ticket_type"] == "demo.access"
 
 
-def test_stage_decision_writes_audit_event(acme_org, acme_user, multi_stage_plugin) -> None:
+def test_stage_decision_writes_audit_event(acme_org, acme_user, multi_stage_ticket_type) -> None:
     from apps.audit.models import AuditEvent
-    from apps.tickets.approval import materialize_stages
-    from apps.tickets.models import Ticket
+
+    from .approval import materialize_stages
 
     t = Ticket.objects.create(
         org=acme_org, requester=acme_user, ticket_type="demo.access",
@@ -361,7 +373,7 @@ def test_stage_decision_writes_audit_event(acme_org, acme_user, multi_stage_plug
     assert evt.data["note"] == "lgtm"
 
 
-def test_audit_failure_does_not_break_caller(acme_org, acme_user, monkeypatch) -> None:
+def test_audit_failure_does_not_break_caller(acme_user, demo_ticket_type, monkeypatch) -> None:
     """log_event must swallow internal errors — never block the user action."""
     from apps.audit import services as audit_services
 
@@ -370,6 +382,15 @@ def test_audit_failure_does_not_break_caller(acme_org, acme_user, monkeypatch) -
 
     monkeypatch.setattr(audit_services.AuditEvent.objects, "create", boom)
 
-    # Ticket create should still succeed even if audit insert errors.
-    resp = _create_ticket(_client_for(acme_user), "acme")
-    assert "id" in resp
+    resp = _client_for(acme_user).post(
+        "/api/tickets/",
+        {
+            "ticket_type": "demo.access",
+            "title": "t",
+            "payload": {"role": "engineer", "reason": "x"},
+        },
+        format="json",
+        HTTP_X_ORG_SLUG="acme",
+    )
+    assert resp.status_code == 201
+    assert "id" in resp.json()

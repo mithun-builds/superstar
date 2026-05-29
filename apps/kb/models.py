@@ -1,13 +1,16 @@
 """Knowledge base — rule chunks + their embeddings.
 
-Rules originate as markdown files in `SUPERSTAR_CONFIG_DIR/<plugin>/kb/`. The
-ingest job (Phase 2) walks the directory, parses frontmatter (rule_id,
-category, decision, price_delta, post_actions), embeds the rule body with
-BGE-M3, and upserts here.
+Rules are created and edited via the SuperStar admin UI. Each row carries
+its markdown body, frontmatter (decision, applies_when, price, post-actions),
+and a BGE-M3 embedding for vector retrieval. Rules belong to a TicketType
+(FK in apps.tickets.models) and are tenant-scoped via Org RLS.
 
 The `rule_id` is the citation anchor — the decisioning service emits these
 verbatim, and the citation verifier confirms each cited id exists in the
 chunks retrieved for that decision.
+
+Embedding refresh happens on save() (Phase 2 — currently the admin save
+must trigger embedding explicitly; see the rule-edit view).
 """
 from __future__ import annotations
 
@@ -24,7 +27,7 @@ class RuleChunk(models.Model):
     org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="rule_chunks")
     plugin_identifier = models.CharField(max_length=100, db_index=True)
     rule_id = models.CharField(max_length=120, db_index=True)
-    source_path = models.CharField(max_length=500)  # relative to SUPERSTAR_CONFIG_DIR
+    source_path = models.CharField(max_length=500, blank=True, help_text="Origin marker — set if imported from a file, blank if created via UI.")
     title = models.CharField(max_length=300, blank=True)
     body = models.TextField()
     # Structured metadata extracted from frontmatter — keeps decisions queryable.

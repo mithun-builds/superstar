@@ -39,8 +39,6 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
-    # SuperStar core (plugin loader runs in ready())
-    "superstar.django_app.SuperStarCoreConfig",
     # SuperStar apps
     "apps.accounts",
     "apps.tenants",
@@ -183,13 +181,6 @@ DECISIONING = {
     "CONFIDENCE_THRESHOLD": env("DECISIONING_CONFIDENCE_THRESHOLD"),
     "SHADOW_MODE": env("DECISIONING_SHADOW_MODE"),
 }
-
-# ---------------------------------------------------------------------------
-# SuperStar — tenant config dir (where SuperStar reads tenant KB/forms/chains)
-# ---------------------------------------------------------------------------
-SUPERSTAR_CONFIG_DIR = Path(
-    env("SUPERSTAR_CONFIG_DIR", default=str(BASE_DIR / "examples" / "kb-it-access"))
-).resolve()
 
 # ---------------------------------------------------------------------------
 # Email

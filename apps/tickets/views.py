@@ -18,11 +18,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from superstar.plugins import all_plugins, get_plugin
-
 from .approval import ApprovalError, current_stage, decide_stage
-from .models import ApprovalStage, Ticket
-from .serializers import ApprovalStageSerializer, StageDecisionSerializer, TicketSerializer
+from .models import ApprovalStage, Ticket, TicketType
+from .serializers import (
+    ApprovalStageSerializer,
+    StageDecisionSerializer,
+    TicketSerializer,
+    TicketTypeDiscoverySerializer,
+)
+from .services import TicketTypeNotFound, get_ticket_type
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -53,56 +57,42 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="plugins")
     def list_plugins(self, request: Request) -> Response:
-        """Discover ticket types this deployment supports."""
-        out = []
-        for ident, plugin in all_plugins().items():
-            contract = plugin.contract if hasattr(plugin, "contract") else plugin
-            out.append({
-                "identifier": ident,
-                "display_name": contract.display_name,
-                "fields": [
-                    {
-                        "name": f.name, "type": f.type, "label": f.label,
-                        "required": f.required, "choices": list(f.choices),
-                        "help_text": f.help_text,
-                    }
-                    for f in contract.schema.fields
-                ],
-                "ai_enabled": contract.ai_policy.enabled,
-                "shadow_mode": contract.ai_policy.shadow_mode,
-            })
-        return Response(out)
+        """Discover the ticket types this org has configured.
+
+        Renamed from "plugins" in the codebase (the old YAML model called
+        them plugins) but the URL stays for client compatibility.
+        """
+        org = getattr(request, "org", None)
+        if org is None:
+            return Response([], status=status.HTTP_200_OK)
+        qs = TicketType.objects.filter(org=org, is_active=True).prefetch_related("fields")
+        return Response(TicketTypeDiscoverySerializer(qs, many=True).data)
 
     @action(detail=True, methods=["post"], url_path="decide")
     def decide(self, request: Request, pk: str | None = None) -> Response:
-        """Force a (re-)decisioning run for this ticket. Synchronous in v0.
-
-        Phase 2 will move this to a Celery task and stream the result back via
-        polling or SSE. For now, blocks until the LLM responds.
-        """
+        """Force a (re-)decisioning run for this ticket. Synchronous in v0."""
         ticket = self.get_object()
-        plugin = get_plugin(ticket.ticket_type)
-        contract = plugin.contract if hasattr(plugin, "contract") else plugin
+        org = ticket.org
 
-        # Read system prompt from disk (relative to SUPERSTAR_CONFIG_DIR).
-        from pathlib import Path
-        from django.conf import settings
+        try:
+            tt = get_ticket_type(org=org, identifier=ticket.ticket_type)
+        except TicketTypeNotFound as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        prompt_path = Path(settings.SUPERSTAR_CONFIG_DIR) / contract.ai_policy.system_prompt_path
-        if not prompt_path.is_file():
-            # Try resolving with the plugin folder prefix.
-            for p in Path(settings.SUPERSTAR_CONFIG_DIR).rglob(contract.ai_policy.system_prompt_path):
-                prompt_path = p
-                break
-        if not prompt_path.is_file():
+        if not tt.ai_enabled:
             return Response(
-                {"detail": f"System prompt not found at {contract.ai_policy.system_prompt_path}"},
+                {"detail": f"AI decisioning disabled for ticket type {tt.identifier!r}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not tt.system_prompt.strip():
+            return Response(
+                {"detail": "System prompt is empty. Edit the ticket type in admin UI."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         from apps.decisioning.services import decide as run_decide
 
-        decision = run_decide(ticket=ticket, system_prompt=prompt_path.read_text())
+        decision = run_decide(ticket=ticket, system_prompt=tt.system_prompt)
         return Response({
             "decision_id": str(decision.id),
             "outcome": decision.outcome,
@@ -116,7 +106,6 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="stages")
     def list_stages(self, request: Request, pk: str | None = None) -> Response:
-        """List the approval chain for a ticket, in order."""
         ticket = self.get_object()
         stages = ticket.stages.order_by("order")
         cur = current_stage(ticket)
@@ -131,7 +120,6 @@ class TicketViewSet(viewsets.ModelViewSet):
         url_path=r"stages/(?P<stage_id>[0-9a-f-]+)/decide",
     )
     def decide_stage(self, request: Request, pk: str | None = None, stage_id: str | None = None) -> Response:
-        """Approve or reject a stage. Advances the chain or closes the ticket."""
         ticket = self.get_object()
         try:
             stage = ticket.stages.get(id=stage_id)
@@ -151,7 +139,6 @@ class TicketViewSet(viewsets.ModelViewSet):
         except ApprovalError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 
-        # Re-read the stage from DB so we return the post-decision shape.
         stage.refresh_from_db()
         next_active = current_stage(updated_ticket)
         return Response({
