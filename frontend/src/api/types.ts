@@ -34,6 +34,10 @@ export interface PluginFieldSpec {
   required: boolean;
   choices: string[];
   help_text: string;
+  // Conditional rendering. Both default to "no constraint" when null/empty.
+  show_if?: Record<string, unknown> | null;
+  choices_if?: Array<{ conditions: Record<string, unknown>; choices: string[] }>;
+  order?: number;
 }
 
 export interface PluginSummary {
@@ -141,6 +145,8 @@ export interface AdminTicketTypeField {
   required: boolean;
   choices: string[];
   help_text: string;
+  show_if?: Record<string, unknown> | null;
+  choices_if?: Array<{ conditions: Record<string, unknown>; choices: string[] }>;
 }
 
 export interface AdminWorkflowStage {

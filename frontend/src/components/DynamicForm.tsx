@@ -6,10 +6,18 @@
 //   int     → <input type="number">
 //   bool    → <input type="checkbox">
 //   text    → <textarea>
-//   enum    → <select> (or radio for ≤4 choices? — keeping simple for now)
+//   enum    → <select>
+//
+// Conditional rendering (added in the conditional-fields feature):
+//   show_if   — field is hidden when its predicate doesn't match the
+//                current values. Hidden values are NOT submitted, so the
+//                backend never sees stale state from a since-hidden field.
+//   choices_if — for enum fields, the first rule whose conditions match
+//                wins; its choices override the static `choices` list.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { PluginFieldSpec } from "../api/types";
+import { activeChoices, appliesTo } from "../lib/appliesWhen";
 
 interface Props {
   fields: PluginFieldSpec[];
@@ -30,13 +38,21 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
   const set = (name: string, value: unknown) =>
     setValues((prev) => ({ ...prev, [name]: value }));
 
+  // Visibility map — derived from values on every render. Cheap; the
+  // alternative (cache + invalidate) is not worth the complexity.
+  const visible = useMemo(() => {
+    const out: Record<string, boolean> = {};
+    for (const f of fields) {
+      out[f.name] = !f.show_if || appliesTo(f.show_if, values).applies;
+    }
+    return out;
+  }, [fields, values]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Coerce types: int field comes back as a string from <input type="number"> —
-    // convert before sending. Empty optional fields are dropped so backend
-    // serializer doesn't validate them as required-but-blank.
     const out: Record<string, unknown> = {};
     for (const f of fields) {
+      if (!visible[f.name]) continue; // strip hidden field values
       const v = values[f.name];
       if (v === "" || v === null || v === undefined) {
         if (f.required) out[f.name] = v;  // let backend complain about required-missing
@@ -54,61 +70,66 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
 
   return (
     <form onSubmit={handleSubmit} className="dyn-form">
-      {fields.map((f) => (
-        <div key={f.name} className="form-field">
-          <label htmlFor={`f-${f.name}`}>
-            {f.label}
-            {f.required && <span className="required">*</span>}
-          </label>
+      {fields.map((f) => {
+        if (!visible[f.name]) return null;
+        const enumChoices = f.type === "enum" ? activeChoices(f, values) : [];
 
-          {f.type === "enum" ? (
-            <select
-              id={`f-${f.name}`}
-              value={String(values[f.name] ?? "")}
-              onChange={(e) => set(f.name, e.target.value)}
-              required={f.required}
-            >
-              <option value="">— select —</option>
-              {f.choices.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          ) : f.type === "text" ? (
-            <textarea
-              id={`f-${f.name}`}
-              value={String(values[f.name] ?? "")}
-              onChange={(e) => set(f.name, e.target.value)}
-              required={f.required}
-              rows={4}
-            />
-          ) : f.type === "bool" ? (
-            <input
-              id={`f-${f.name}`}
-              type="checkbox"
-              checked={Boolean(values[f.name])}
-              onChange={(e) => set(f.name, e.target.checked)}
-            />
-          ) : f.type === "int" ? (
-            <input
-              id={`f-${f.name}`}
-              type="number"
-              value={values[f.name] === "" ? "" : String(values[f.name])}
-              onChange={(e) => set(f.name, e.target.value)}
-              required={f.required}
-            />
-          ) : (
-            <input
-              id={`f-${f.name}`}
-              type="text"
-              value={String(values[f.name] ?? "")}
-              onChange={(e) => set(f.name, e.target.value)}
-              required={f.required}
-            />
-          )}
+        return (
+          <div key={f.name} className="form-field">
+            <label htmlFor={`f-${f.name}`}>
+              {f.label}
+              {f.required && <span className="required">*</span>}
+            </label>
 
-          {f.help_text && <small className="help">{f.help_text}</small>}
-        </div>
-      ))}
+            {f.type === "enum" ? (
+              <select
+                id={`f-${f.name}`}
+                value={String(values[f.name] ?? "")}
+                onChange={(e) => set(f.name, e.target.value)}
+                required={f.required}
+              >
+                <option value="">— select —</option>
+                {enumChoices.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            ) : f.type === "text" ? (
+              <textarea
+                id={`f-${f.name}`}
+                value={String(values[f.name] ?? "")}
+                onChange={(e) => set(f.name, e.target.value)}
+                required={f.required}
+                rows={4}
+              />
+            ) : f.type === "bool" ? (
+              <input
+                id={`f-${f.name}`}
+                type="checkbox"
+                checked={Boolean(values[f.name])}
+                onChange={(e) => set(f.name, e.target.checked)}
+              />
+            ) : f.type === "int" ? (
+              <input
+                id={`f-${f.name}`}
+                type="number"
+                value={values[f.name] === "" ? "" : String(values[f.name])}
+                onChange={(e) => set(f.name, e.target.value)}
+                required={f.required}
+              />
+            ) : (
+              <input
+                id={`f-${f.name}`}
+                type="text"
+                value={String(values[f.name] ?? "")}
+                onChange={(e) => set(f.name, e.target.value)}
+                required={f.required}
+              />
+            )}
+
+            {f.help_text && <small className="help">{f.help_text}</small>}
+          </div>
+        );
+      })}
       <button type="submit" className="btn btn-primary" disabled={submitting}>
         {submitting ? "Submitting…" : submitLabel}
       </button>

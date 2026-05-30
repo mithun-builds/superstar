@@ -58,6 +58,17 @@ class TicketSerializer(serializers.ModelSerializer):
 
 
 def _validate_payload_against_fields(payload: dict, fields) -> list[str]:
+    """Plugin-driven payload validation, honoring conditional rendering:
+
+    - A field whose `show_if` doesn't match the payload is considered
+      hidden — its `required` flag is ignored, AND its value (if any)
+      is dropped from the payload to keep stale-state out of the DB.
+    - For enum fields with `choices_if`, the first rule whose conditions
+      match wins, and validation runs against THAT rule's choices.
+      No rule matches → fall back to the field's `choices`.
+    """
+    from superstar.applies_when import applies_to
+
     errors: list[str] = []
     known: dict[str, TicketTypeField] = {f.name: f for f in fields}
 
@@ -66,6 +77,16 @@ def _validate_payload_against_fields(payload: dict, fields) -> list[str]:
         errors.append(f"Unknown fields: {unknown}")
 
     for f in known.values():
+        # show_if evaluation
+        visible = True
+        if f.show_if:
+            visible, _ = applies_to(f.show_if, payload)
+        if not visible:
+            # Drop any value the client may have left in for this hidden field
+            # so it doesn't roundtrip into the saved ticket payload.
+            payload.pop(f.name, None)
+            continue
+
         v = payload.get(f.name)
         if v in (None, ""):
             if f.required:
@@ -80,12 +101,29 @@ def _validate_payload_against_fields(payload: dict, fields) -> list[str]:
         elif ft in ("string", "text") and not isinstance(v, str):
             errors.append(f"Field '{f.name}' must be string, got {type(v).__name__}")
         elif ft == "enum":
-            if f.choices and v not in f.choices:
+            active_choices = _active_choices(f, payload)
+            if active_choices and v not in active_choices:
                 errors.append(
-                    f"Field '{f.name}' value {v!r} not in choices {list(f.choices)}"
+                    f"Field '{f.name}' value {v!r} not in choices {list(active_choices)}"
                 )
 
     return errors
+
+
+def _active_choices(field: TicketTypeField, payload: dict) -> list:
+    """Pick the choices for an enum field, considering choices_if rules.
+
+    Returns the first matching rule's choices, or the field's static
+    choices as fallback. An empty result means "no constraint" — caller
+    should not enforce membership.
+    """
+    from superstar.applies_when import applies_to
+
+    for rule in field.choices_if or []:
+        ok, _ = applies_to(rule.get("conditions"), payload)
+        if ok:
+            return list(rule.get("choices") or [])
+    return list(field.choices or [])
 
 
 class ApprovalStageSerializer(serializers.ModelSerializer):
@@ -155,7 +193,10 @@ class TicketTypeFieldSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketTypeField
-        fields = ["name", "type", "label", "required", "choices", "help_text", "order"]
+        fields = [
+            "name", "type", "label", "required", "choices", "help_text", "order",
+            "show_if", "choices_if",
+        ]
 
 
 class TicketTypeDiscoverySerializer(serializers.ModelSerializer):

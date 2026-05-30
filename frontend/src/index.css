@@ -407,3 +407,44 @@ pre {
   border-color: #f3c8c4;
   color: var(--reject);
 }
+
+/* ---------------- Field conditions UI ---------------- */
+.conditions-row { margin-top: 0.3rem; }
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.2rem 0;
+  font: inherit;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.link-btn:hover { text-decoration: underline; }
+.inline-chip { font-size: 0.7rem; padding: 0.1rem 0.4rem; cursor: default; }
+.conditions-panel {
+  margin-top: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  background: #f7f9fd;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.7rem;
+}
+.choices-if-rule {
+  padding: 0.5rem 0.7rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0.3rem 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.cir-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cir-label { font-weight: 600; font-size: 0.85rem; }

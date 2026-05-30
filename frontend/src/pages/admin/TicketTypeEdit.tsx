@@ -13,6 +13,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useApi, useMutation } from "../../api/hooks";
+import AppliesWhenBuilder from "../../components/AppliesWhenBuilder";
 import type {
   AdminTeam,
   AdminTicketType,
@@ -236,22 +237,30 @@ function FieldsEditor({
 
       {fields.length === 0 && <p className="muted">No fields yet.</p>}
 
-      {fields.map((f) => (
-        <FieldRow
-          key={f.id}
-          ticketTypeId={ticketTypeId}
-          orgSlug={orgSlug}
-          field={f}
-          onChanged={onChanged}
-        />
-      ))}
-
-      <FieldRow
-        ticketTypeId={ticketTypeId}
-        orgSlug={orgSlug}
-        field={null}
-        onChanged={onChanged}
-      />
+      {(() => {
+        const siblingNames = fields.map((f) => f.name).filter(Boolean);
+        return (
+          <>
+            {fields.map((f) => (
+              <FieldRow
+                key={f.id}
+                ticketTypeId={ticketTypeId}
+                orgSlug={orgSlug}
+                field={f}
+                siblingNames={siblingNames.filter((n) => n !== f.name)}
+                onChanged={onChanged}
+              />
+            ))}
+            <FieldRow
+              ticketTypeId={ticketTypeId}
+              orgSlug={orgSlug}
+              field={null}
+              siblingNames={siblingNames}
+              onChanged={onChanged}
+            />
+          </>
+        );
+      })()}
     </section>
   );
 }
@@ -260,11 +269,13 @@ function FieldRow({
   ticketTypeId,
   orgSlug,
   field,
+  siblingNames,
   onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   field: AdminTicketTypeField | null;
+  siblingNames: string[];
   onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<Partial<AdminTicketTypeField>>(
@@ -276,7 +287,12 @@ function FieldRow({
       required: true,
       choices: [],
       help_text: "",
+      show_if: null,
+      choices_if: [],
     },
+  );
+  const [showConditions, setShowConditions] = useState(
+    !!(field && ((field.show_if && Object.keys(field.show_if).length > 0) || (field.choices_if && field.choices_if.length > 0))),
   );
 
   const isNew = field === null;
@@ -296,6 +312,8 @@ function FieldRow({
         required: true,
         choices: [],
         help_text: "",
+        show_if: null,
+        choices_if: [],
       });
     } else {
       await api(`/api/admin/ticket-types/${ticketTypeId}/fields/${field.id}/`, {
@@ -371,8 +389,48 @@ function FieldRow({
               choices: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
             })
           }
-          placeholder="choices, comma-separated"
+          placeholder="default choices, comma-separated"
         />
+      )}
+
+      <div className="conditions-row">
+        <button
+          type="button"
+          className="link-btn"
+          onClick={() => setShowConditions((v) => !v)}
+        >
+          {showConditions ? "▾" : "▸"} Conditions
+          {(draft.show_if && Object.keys(draft.show_if).length > 0) || (draft.choices_if && draft.choices_if.length > 0)
+            ? <span className="chip chip-active inline-chip">active</span>
+            : null}
+        </button>
+      </div>
+
+      {showConditions && (
+        <div className="conditions-panel">
+          <div className="form-field">
+            <label>Show only when…</label>
+            <AppliesWhenBuilder
+              value={(draft.show_if as Record<string, unknown>) || {}}
+              onChange={(v) =>
+                setDraft({ ...draft, show_if: Object.keys(v).length === 0 ? null : v })
+              }
+              knownFieldNames={siblingNames}
+            />
+            <small className="help">
+              Empty = always show. Otherwise this field renders only when ALL
+              conditions match the request payload.
+            </small>
+          </div>
+
+          {draft.field_type === "enum" && (
+            <ChoicesIfEditor
+              value={draft.choices_if ?? []}
+              onChange={(v) => setDraft({ ...draft, choices_if: v })}
+              siblingNames={siblingNames}
+            />
+          )}
+        </div>
       )}
 
       <div className="btn-row">
@@ -652,6 +710,79 @@ function ApproverTeamSelector({
           No teams in this org yet. Create one in Admin → Teams.
         </small>
       )}
+    </div>
+  );
+}
+
+
+/** Editor for the choices_if rule list — cascading dropdowns.
+ *  Each rule has a conditions block (uses AppliesWhenBuilder) + a list of
+ *  choices that should be active when those conditions match. First rule
+ *  that matches wins; if none, the field's static `choices` is used. */
+function ChoicesIfEditor({
+  value,
+  onChange,
+  siblingNames,
+}: {
+  value: Array<{ conditions: Record<string, unknown>; choices: string[] }>;
+  onChange: (v: Array<{ conditions: Record<string, unknown>; choices: string[] }>) => void;
+  siblingNames: string[];
+}) {
+  const setRule = (i: number, patch: Partial<{ conditions: Record<string, unknown>; choices: string[] }>) =>
+    onChange(value.map((r, j) => (i === j ? { ...r, ...patch } : r)));
+  const addRule = () => onChange([...value, { conditions: {}, choices: [] }]);
+  const removeRule = (i: number) => onChange(value.filter((_, j) => i !== j));
+
+  return (
+    <div className="form-field">
+      <label>Choices change when…</label>
+      <small className="help">
+        Each rule overrides the default <code>choices</code> when its conditions match.
+        First match wins. If no rule matches, default choices are used.
+      </small>
+      {value.length === 0 && (
+        <p className="muted small">
+          No rules — default choices apply to all requests.
+        </p>
+      )}
+      {value.map((rule, i) => (
+        <div key={i} className="choices-if-rule">
+          <div className="cir-header">
+            <strong>Rule {i + 1}</strong>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => removeRule(i)}
+              title="Remove rule"
+            >
+              ✕
+            </button>
+          </div>
+          <small className="help">When…</small>
+          <AppliesWhenBuilder
+            value={rule.conditions}
+            onChange={(conditions) => setRule(i, { conditions })}
+            knownFieldNames={siblingNames}
+          />
+          <div style={{ marginTop: "0.5rem" }}>
+            <label className="cir-label">…then choices are:</label>
+            <input
+              type="text"
+              value={rule.choices.join(", ")}
+              onChange={(e) =>
+                setRule(i, {
+                  choices: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                })
+              }
+              placeholder="comma-separated values"
+              style={{ width: "100%" }}
+            />
+          </div>
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={addRule}>
+        + Add rule
+      </button>
     </div>
   );
 }

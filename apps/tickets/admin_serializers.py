@@ -15,14 +15,35 @@ from .models import TicketType, TicketTypeField, WorkflowStage
 class TicketTypeFieldAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketTypeField
-        fields = ["id", "order", "name", "field_type", "label", "required", "choices", "help_text"]
+        fields = [
+            "id", "order", "name", "field_type", "label", "required",
+            "choices", "help_text", "show_if", "choices_if",
+        ]
         read_only_fields = ["id"]
 
     def validate(self, attrs):
-        if attrs.get("field_type") == "enum" and not attrs.get("choices"):
-            raise serializers.ValidationError(
-                {"choices": "Required for enum-typed fields."}
-            )
+        # Enum needs at least one choice source — either a static `choices`
+        # list or a `choices_if` rule. Validate "you've given me neither"
+        # rather than just "no choices".
+        if attrs.get("field_type") == "enum":
+            if not attrs.get("choices") and not attrs.get("choices_if"):
+                raise serializers.ValidationError(
+                    {"choices": "Enum needs either `choices` or at least one `choices_if` rule."}
+                )
+        # choices_if validation — each rule needs both conditions + choices.
+        for i, rule in enumerate(attrs.get("choices_if") or []):
+            if not isinstance(rule, dict):
+                raise serializers.ValidationError(
+                    {"choices_if": f"Rule {i}: must be an object, got {type(rule).__name__}"}
+                )
+            if "conditions" not in rule or "choices" not in rule:
+                raise serializers.ValidationError(
+                    {"choices_if": f"Rule {i}: needs both `conditions` and `choices` keys."}
+                )
+            if not isinstance(rule["choices"], list):
+                raise serializers.ValidationError(
+                    {"choices_if": f"Rule {i}: `choices` must be a list."}
+                )
         return attrs
 
 

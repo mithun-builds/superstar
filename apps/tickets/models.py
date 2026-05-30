@@ -108,7 +108,20 @@ class TicketTypeField(models.Model):
     field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.STRING)
     label = models.CharField(max_length=200)
     required = models.BooleanField(default=True)
-    choices = models.JSONField(default=list, blank=True, help_text="Only for enum fields.")
+    choices = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Default choices for enum fields. Overridden by the first matching choices_if rule.",
+    )
+    # Conditional rendering: this field is visible only when the predicate
+    # (same DSL as KB applies_when) matches the rest of the payload. Null/empty
+    # means "always show". Frontend evaluates this in real time; backend
+    # validation skips required-checks on hidden fields.
+    show_if = models.JSONField(null=True, blank=True)
+    # Cascading choices: a list of {conditions, choices} rules. The first
+    # rule whose conditions match the current payload wins; if none match,
+    # the field's `choices` is used as fallback. Only meaningful for enum.
+    choices_if = models.JSONField(default=list, blank=True)
     help_text = models.CharField(max_length=300, blank=True)
 
     class Meta:
