@@ -18,7 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from .approval import ApprovalError, current_stage, decide_stage
+from .approval import ApprovalError, StageAuthError, current_stage, decide_stage
 from .models import ApprovalStage, Ticket, TicketType
 from .serializers import (
     ApprovalStageSerializer,
@@ -143,6 +143,9 @@ class TicketViewSet(viewsets.ModelViewSet):
                 decision=input_ser.validated_data["decision"],
                 note=input_ser.validated_data.get("note", ""),
             )
+        except StageAuthError as exc:
+            # Permission failure — distinct from a state-machine conflict.
+            return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
         except ApprovalError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 

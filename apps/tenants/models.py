@@ -63,3 +63,60 @@ class OrgMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} @ {self.org.slug} ({self.role})"
+
+
+class Team(models.Model):
+    """A named approver group within an org.
+
+    Workflow stages reference teams by `slug` (in their JSONB approvers
+    list) — e.g. a stage with approvers=["security", "design-head"] means
+    "a member of the 'security' OR 'design-head' team in this org can
+    decide this stage". Slugs aren't FK-enforced because the workflow
+    stage is created before its teams might be — the auth check at
+    decide time just fails closed when a referenced team doesn't exist.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name="teams")
+    slug = models.SlugField(max_length=80, db_index=True)
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org", "slug"], name="uniq_org_team_slug"),
+        ]
+        ordering = ["org", "slug"]
+
+    def __str__(self) -> str:
+        return f"{self.org.slug}.{self.slug}"
+
+
+class TeamMembership(models.Model):
+    """User ↔ Team. The user must already have an OrgMembership in the
+    team's org — enforced at the serializer level (validating cross-org
+    references via the DB would need a FK to (org_id, user_id) we don't
+    maintain)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="team_memberships",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["team", "user"], name="uniq_team_user"),
+        ]
+        indexes = [
+            models.Index(fields=["user", "team"]),
+        ]
+        ordering = ["team", "user__email"]
+
+    def __str__(self) -> str:
+        return f"{self.user} in {self.team}"

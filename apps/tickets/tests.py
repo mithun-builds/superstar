@@ -30,8 +30,12 @@ def acme_org() -> Org:
 
 @pytest.fixture
 def acme_user(acme_org: Org) -> "User":
+    """Acts as the API caller for the tests in this file. Given admin role so
+    these tests (which exercise the state machine + audit log, not the team
+    authorization gate) can drive stage decisions without setting up teams.
+    The dedicated authorization tests live in test_stage_auth.py."""
     u = User.objects.create_user(email="alice@acme.test", password="pw12345!")
-    OrgMembership.objects.create(org=acme_org, user=u, role="requester")
+    OrgMembership.objects.create(org=acme_org, user=u, role="admin")
     return u
 
 

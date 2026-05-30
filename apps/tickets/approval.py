@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 from django.db import transaction
 from django.utils import timezone
 
+from apps.tenants.models import OrgMembership, TeamMembership
+
 from .models import ApprovalStage, Ticket
 from .services import get_ticket_type
 
@@ -41,6 +43,46 @@ logger = logging.getLogger(__name__)
 
 class ApprovalError(Exception):
     """Raised on illegal stage decisions (out-of-order, already-decided, etc)."""
+
+
+class StageAuthError(ApprovalError):
+    """User isn't authorized to decide this stage — not a member of any
+    of the stage's approver teams (and not an org owner/admin/superuser
+    that bypasses team membership)."""
+
+
+def can_decide_stage(*, user, stage: ApprovalStage, org) -> bool:
+    """Whether `user` is allowed to act on this stage.
+
+    Bypass rules — these cover "configure-the-platform" personas who'd be
+    actively confused by being locked out of their own org's approvals:
+        - Platform superusers
+        - Org owners (`OrgMembership.role = owner`)
+        - Org admins (`OrgMembership.role = admin`)
+
+    Otherwise: must be a TeamMembership of at least one of the stage's
+    named approver teams. If the stage names a team that doesn't exist
+    in this org, the membership query returns nothing and the user is
+    denied (fail-closed).
+    """
+    if getattr(user, "is_superuser", False):
+        return True
+    if OrgMembership.objects.filter(
+        org=org,
+        user=user,
+        role__in=(OrgMembership.Role.OWNER, OrgMembership.Role.ADMIN),
+    ).exists():
+        return True
+    if not stage.approvers:
+        # No approvers configured → falls back to "any org member can decide".
+        # This is the safe default — without it, mis-configured stages would
+        # become un-actionable. Worth a future warning surface in the admin UI.
+        return OrgMembership.objects.filter(org=org, user=user).exists()
+    return TeamMembership.objects.filter(
+        user=user,
+        team__org=org,
+        team__slug__in=stage.approvers,
+    ).exists()
 
 
 @transaction.atomic
@@ -65,6 +107,7 @@ def materialize_stages(ticket: Ticket) -> list[ApprovalStage]:
                 order=spec.order or (len(stages) + 1),
                 name=spec.name,
                 mode=spec.mode,
+                approvers=list(spec.approvers or []),  # snapshot at escalation time
                 status=ApprovalStage.Status.PENDING,
             )
         )
@@ -119,6 +162,11 @@ def decide_stage(
         raise ApprovalError(f"Stage {stage.name} already decided ({stage.status})")
 
     ticket = stage.ticket
+    if not can_decide_stage(user=user, stage=stage, org=ticket.org):
+        raise StageAuthError(
+            f"Not a member of any approver team for stage {stage.name!r} "
+            f"(approvers: {list(stage.approvers)})"
+        )
     # In sequential workflows, only the current stage may be decided.
     tt = get_ticket_type(org=ticket.org, identifier=ticket.ticket_type)
     if tt.sequential:

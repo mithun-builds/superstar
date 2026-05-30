@@ -214,6 +214,11 @@ class ApprovalStage(models.Model):
     )
     decided_at = models.DateTimeField(null=True, blank=True)
     note = models.TextField(blank=True)
+    # Snapshot of WorkflowStage.approvers at materialize time. Snapshotting
+    # means later edits to the template don't retroactively change who can
+    # decide an already-in-flight stage — the approver list is the one this
+    # ticket was escalated with.
+    approvers = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
