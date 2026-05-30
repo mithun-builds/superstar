@@ -185,3 +185,23 @@ export interface AdminRule {
   extra: Record<string, unknown>;
   ingested_at: string;
 }
+
+// Team + membership (admin side).
+export interface AdminTeamMembership {
+  id: string;
+  user: string;            // user UUID
+  user_email: string;
+  user_full_name: string;
+  created_at: string;
+}
+
+export interface AdminTeam {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  memberships: AdminTeamMembership[];
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+}

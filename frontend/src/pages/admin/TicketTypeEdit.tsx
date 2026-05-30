@@ -14,9 +14,11 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useApi, useMutation } from "../../api/hooks";
 import type {
+  AdminTeam,
   AdminTicketType,
   AdminTicketTypeField,
   AdminWorkflowStage,
+  Paginated,
 } from "../../api/types";
 import { useOrgRequired } from "../../contexts/OrgContext";
 
@@ -412,12 +414,26 @@ function StagesEditor({
   stages: AdminWorkflowStage[];
   onChanged: () => void;
 }) {
+  // Fetch the org's teams so each StageRow can render a multi-select of
+  // existing team slugs instead of asking admins to type comma-separated
+  // strings that have to exactly match team slugs to actually authorize anyone.
+  const teamsState = useApi<Paginated<AdminTeam> | AdminTeam[]>(
+    "/api/admin/teams/",
+    { orgSlug },
+  );
+  const teamSlugs = (() => {
+    if (!teamsState.data) return [];
+    const arr = Array.isArray(teamsState.data) ? teamsState.data : teamsState.data.results;
+    return arr.map((t) => t.slug);
+  })();
+
   return (
     <section className="card">
       <h3>Workflow stages</h3>
       <p className="muted">
         On escalation, SuperStar materializes a stage per row, in order. The
-        ticket advances when the active stage is approved.
+        ticket advances when the active stage is approved by a member of one of
+        its approver teams.
       </p>
 
       {stages.length === 0 && <p className="muted">No stages yet.</p>}
@@ -428,6 +444,7 @@ function StagesEditor({
           ticketTypeId={ticketTypeId}
           orgSlug={orgSlug}
           stage={s}
+          knownTeamSlugs={teamSlugs}
           onChanged={onChanged}
         />
       ))}
@@ -436,8 +453,16 @@ function StagesEditor({
         ticketTypeId={ticketTypeId}
         orgSlug={orgSlug}
         stage={null}
+        knownTeamSlugs={teamSlugs}
         onChanged={onChanged}
       />
+
+      {teamSlugs.length === 0 && (
+        <p className="muted small">
+          No teams configured yet. <a href={`/o/${orgSlug}/admin/teams`}>Create one</a> first,
+          then come back to add it as an approver group.
+        </p>
+      )}
     </section>
   );
 }
@@ -446,11 +471,13 @@ function StageRow({
   ticketTypeId,
   orgSlug,
   stage,
+  knownTeamSlugs,
   onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   stage: AdminWorkflowStage | null;
+  knownTeamSlugs: string[];
   onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<Partial<AdminWorkflowStage>>(
@@ -538,16 +565,10 @@ function StageRow({
         />
       </div>
 
-      <input
-        type="text"
-        value={(draft.approvers ?? []).join(", ")}
-        onChange={(e) =>
-          setDraft({
-            ...draft,
-            approvers: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-          })
-        }
-        placeholder="approver groups, comma-separated (e.g. security, design-head)"
+      <ApproverTeamSelector
+        selected={draft.approvers ?? []}
+        knownTeamSlugs={knownTeamSlugs}
+        onChange={(approvers) => setDraft({ ...draft, approvers })}
       />
 
       <div className="btn-row">
@@ -571,6 +592,66 @@ function StageRow({
         )}
       </div>
       {save.error && <p className="error">{save.error.message}</p>}
+    </div>
+  );
+}
+
+
+/** Multi-select of team slugs in this org + a fallback for stages that
+ *  reference team slugs no longer present (preserved as "(stale)" chips so
+ *  we don't silently erase them on save). */
+function ApproverTeamSelector({
+  selected,
+  knownTeamSlugs,
+  onChange,
+}: {
+  selected: string[];
+  knownTeamSlugs: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const stale = selected.filter((s) => !knownTeamSlugs.includes(s));
+
+  const toggle = (slug: string) => {
+    if (selected.includes(slug)) {
+      onChange(selected.filter((s) => s !== slug));
+    } else {
+      onChange([...selected, slug]);
+    }
+  };
+
+  return (
+    <div className="approver-team-selector">
+      <div className="chip-row">
+        {knownTeamSlugs.map((slug) => {
+          const on = selected.includes(slug);
+          return (
+            <button
+              type="button"
+              key={slug}
+              className={`chip ${on ? "chip-active" : ""}`}
+              onClick={() => toggle(slug)}
+            >
+              {on ? "✓ " : ""}{slug}
+            </button>
+          );
+        })}
+        {stale.map((slug) => (
+          <button
+            type="button"
+            key={`stale-${slug}`}
+            className="chip chip-stale"
+            title="No team with this slug exists in this org. Click to remove."
+            onClick={() => onChange(selected.filter((s) => s !== slug))}
+          >
+            {slug} <span className="muted">(stale)</span>
+          </button>
+        ))}
+      </div>
+      {knownTeamSlugs.length === 0 && (
+        <small className="muted">
+          No teams in this org yet. Create one in Admin → Teams.
+        </small>
+      )}
     </div>
   );
 }

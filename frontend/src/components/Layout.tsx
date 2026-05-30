@@ -1,12 +1,14 @@
 // Shared chrome: header bar with brand, current org, sign-out (placeholder).
 
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useApi } from "../api/hooks";
 import type { Me } from "../api/types";
 import { useOrg } from "../contexts/OrgContext";
 
 export default function Layout() {
   const slug = useOrg();
+  const location = useLocation();
+  const inAdmin = location.pathname.includes("/admin/");
   const { data: me } = useApi<Me>("/api/me/");
 
   return (
@@ -32,6 +34,22 @@ export default function Layout() {
           </span>
         )}
       </header>
+      {slug && inAdmin && (
+        <nav className="admin-subnav">
+          <Link
+            to={`/o/${slug}/admin/ticket-types`}
+            className={location.pathname.includes("/admin/ticket-types") ? "active" : ""}
+          >
+            Ticket types
+          </Link>
+          <Link
+            to={`/o/${slug}/admin/teams`}
+            className={location.pathname.includes("/admin/teams") ? "active" : ""}
+          >
+            Teams
+          </Link>
+        </nav>
+      )}
       <main className="app-main">
         <Outlet />
       </main>

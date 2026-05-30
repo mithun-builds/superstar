@@ -373,3 +373,37 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------- Admin sub-nav ---------------- */
+.admin-subnav {
+  display: flex; gap: 0.4rem;
+  padding: 0.5rem 2rem;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+.admin-subnav a {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--fg-muted);
+  font-size: 0.9rem;
+}
+.admin-subnav a:hover { background: #f0f0f3; text-decoration: none; }
+.admin-subnav a.active {
+  background: #eef4fb;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---------------- Approver team selector ---------------- */
+.approver-team-selector { display: grid; gap: 0.3rem; }
+.chip-row {
+  display: flex; flex-wrap: wrap; gap: 0.35rem;
+}
+.chip.chip-stale {
+  background: #fff5f3;
+  border-color: #f3c8c4;
+  color: var(--reject);
+}

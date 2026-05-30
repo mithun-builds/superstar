@@ -7,6 +7,8 @@ import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
 import RuleEdit from "./pages/admin/RuleEdit";
 import RuleList from "./pages/admin/RuleList";
+import TeamEdit from "./pages/admin/TeamEdit";
+import TeamList from "./pages/admin/TeamList";
 import TicketTypeEdit from "./pages/admin/TicketTypeEdit";
 import TicketTypeList from "./pages/admin/TicketTypeList";
 
@@ -33,6 +35,8 @@ export default function App() {
           path="/o/:orgSlug/admin/ticket-types/:ticketTypeId/rules/:ruleId"
           element={<RuleEdit />}
         />
+        <Route path="/o/:orgSlug/admin/teams" element={<TeamList />} />
+        <Route path="/o/:orgSlug/admin/teams/:teamId" element={<TeamEdit />} />
       </Route>
     </Routes>
   );
