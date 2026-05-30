@@ -11,7 +11,7 @@
 - [x] CI workflow (GitHub Actions)
 - [x] Initial migrations + RLS migrations
 
-## Phase 1 — core ticketing ✅ (backend) + 🚧 (admin UI)
+## Phase 1 — core ticketing ✅
 
 - [x] Ticket REST API (list / create / detail / decide)
 - [x] Sequential approval chain execution + decide endpoint
@@ -22,27 +22,44 @@
 - [x] `applies_when` DSL evaluator + 26 unit tests
 - [x] `create_tenant` management command
 - [x] Frontend: org picker, ticket list, dynamic plugin-driven form, ticket detail with decision card + inline approve/reject
-- [ ] **Admin UI for ticket-type configuration** (next deliverable on `wip/db-backed-config`):
-  - `/o/:slug/admin/ticket-types` (list)
-  - `/o/:slug/admin/ticket-types/new` (create — schema fields, workflow stages, AI policy, prompt)
-  - `/o/:slug/admin/ticket-types/:id` (edit)
-  - `/o/:slug/admin/ticket-types/:id/rules` (KB management for that type)
-  - `/o/:slug/admin/ticket-types/:id/rules/:id` (markdown editor + applies_when builder)
-- [ ] Admin CRUD REST API backing the above
-- [ ] RLS verification test with a non-superuser role
+- [x] Admin UI for ticket-type configuration (list / create / edit, fields, stages, AI policy, prompt)
+- [x] Admin UI for KB rule management (markdown editor + `applies_when` visual builder + live preview)
+- [x] Admin CRUD REST API backing all of the above
+- [x] RLS verification test with a non-superuser Postgres role (proves the policies actually engage)
 
-## Phase 2 — AI hardening + email
+## Phase 2 — AI hardening ✅ (mostly)
 
-- BGE-M3 ingest hooked into rule save() so embeddings stay fresh on edit
-- Eval harness skeleton + precision/recall/refusal metrics
-- Async decisioning via Celery (`/decide/` returns 202 + polling endpoint)
-- Outbound email + Postal inbound
+- [x] BGE-M3 ingest hooked into rule save() so embeddings stay fresh on edit
+- [x] Async decisioning via Celery (`/decide/` returns 202 + polling endpoint)
+- [x] Eval harness — `manage.py eval_decisioning` with CI-friendly threshold gates ([docs/eval.md](eval.md))
+- [ ] Outbound email + Postal inbound — **deferred to post-v1**
+
+## Phase 2.5 — extras shipped after the original plan
+
+These weren't in the original phase plan but landed in this cycle because the
+v1 footprint felt incomplete without them.
+
+- [x] **Vote modes** on approval stages: `any_member`, `unanimous_team`, `majority`, `specific_user`
+- [x] **Teams + team membership** (org-scoped, RLS-isolated) — stage approvers reference team slugs
+- [x] **Stage-decide authorization gate** — backend enforces who can vote on a stage given its mode
+- [x] **StageVote model** — records every vote, supports tally + per-user view
+- [x] **Conditional form fields** — `show_if` (visibility) and `choices_if` (cascading choices) on `TicketTypeField`, both reusing the `applies_when` DSL
+- [x] **Frontend port of the DSL** so the form reacts client-side without server round-trips
 
 ## Phase 3 — first tenant launch
 
 - Pick a real tenant (e.g. HomeLane NSD.AI) and onboard via admin UI
+- Curate a 30-50 row golden eval set from real historical tickets
 - Shadow mode → live on a subset of users → full rollout
 - Tune retrieval / prompt / confidence threshold until precision ≥ 98%
+- Deployment recipe: Docker compose for dev, separate GPU box for vLLM, env secrets
+
+## Phase 4 — email parity
+
+- Outbound SMTP for state-change notifications
+- Postal (OSS) for inbound — reply-to-approve, mirror every event to email
+- Per-org notification config (already a JSONB field on `TicketType.notifications`,
+  just needs a UI + workers)
 
 ## Beyond v1
 

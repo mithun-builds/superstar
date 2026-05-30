@@ -21,11 +21,15 @@ SuperStar is a generic, self-hostable platform. Every tenant — your company, t
 - **Open-weight LLM by default.** Self-host Qwen 2.5 via Ollama or vLLM. Swap any backend via the `LLMClient` interface.
 - **Multi-tenant from v1.** One platform, many orgs. Postgres RLS isolates tenants. Path-routed (`/o/{org-slug}/...`).
 - **Configure in the product, not the filesystem.** Org admins create ticket types, schema fields, approval workflows, system prompts, and KB rules through the SuperStar admin UI. Everything lives in Postgres, scoped per-org.
+- **Approval chains with real vote semantics.** Four stage modes — `any_member`, `unanimous_team`, `majority`, `specific_user` — backed by team membership and a vote tally that updates live.
+- **Conditional forms.** Schema fields support `show_if` (visibility) and `choices_if` (cascading dropdowns) via the same `applies_when` DSL admins already learn for rule conditions.
+- **Async decisioning.** `POST /decide/` returns 202 + a task id; a Celery worker runs the LLM call; the frontend polls. Long inference doesn't block the request thread.
+- **Eval harness built in.** `python manage.py eval_decisioning` runs a JSONL golden set through the loop and reports precision / citation accuracy / refusal recall. `--min-*` thresholds make CI gate shadow → live promotions.
 - **MIT licensed.** Fork, deploy. Your tenant data stays in your DB.
 
 ## Status
 
-**Phase 1 — DB-native config rework on `wip/db-backed-config`.** Backend foundation in place; admin UI lands next. See [docs/roadmap.md](docs/roadmap.md).
+**v1 backend complete.** 196 tests passing. Multi-tenant, configurable through the UI, with the full decisioning loop (RAG → 4 guards → auto-decide or escalate), approval chains, async dispatch, and an eval harness. Email + a packaged deployment recipe are the remaining v1 items. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quickstart
 
@@ -119,6 +123,18 @@ Non-negotiable safety contract:
 4. **Confidence threshold** — below floor → escalate
 
 Plus: shadow mode (default on in dev), full audit log per decision.
+
+## Evaluating decision quality
+
+The eval harness runs a golden JSONL through the decisioning loop and gates promotions on the three metrics:
+
+```bash
+python manage.py eval_decisioning examples/eval/sample.jsonl --org demo \
+    --min-precision 0.98 --min-citation-accuracy 1.0 --min-refusal-recall 0.95 \
+    --json-out eval-report.json
+```
+
+Non-zero exit on threshold failure → drop straight into CI. The harness forces `shadow_mode=True` for its tickets so it never mutates production state. Full docs in [docs/eval.md](docs/eval.md).
 
 ## Contributing
 
