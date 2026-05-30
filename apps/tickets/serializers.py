@@ -89,10 +89,48 @@ def _validate_payload_against_fields(payload: dict, fields) -> list[str]:
 
 
 class ApprovalStageSerializer(serializers.ModelSerializer):
+    """Read shape for the ticket-detail UI.
+
+    Includes a `vote_tally` for non-`any_member` modes: how many approves,
+    how many rejects, how many required (the universe size), and the
+    current user's vote if any. The frontend renders "you (1/3 approved
+    so far)" UX from these counts.
+    """
+    vote_tally = serializers.SerializerMethodField()
+
     class Meta:
         model = ApprovalStage
-        fields = ["id", "order", "name", "mode", "status", "decided_by", "decided_at", "note"]
-        read_only_fields = ["id", "order", "name", "mode", "decided_by", "decided_at"]
+        fields = [
+            "id", "order", "name", "mode", "status", "decided_by", "decided_at",
+            "note", "approvers", "vote_tally",
+        ]
+        read_only_fields = [
+            "id", "order", "name", "mode", "decided_by", "decided_at", "approvers", "vote_tally",
+        ]
+
+    def get_vote_tally(self, stage):
+        from apps.tickets.approval import _required_voter_count
+        from apps.tickets.models import StageVote
+
+        votes = stage.votes.all()
+        approves = sum(1 for v in votes if v.decision == StageVote.Decision.APPROVED)
+        rejects = sum(1 for v in votes if v.decision == StageVote.Decision.REJECTED)
+        try:
+            required = _required_voter_count(stage, stage.org)
+        except Exception:  # noqa: BLE001
+            required = 0
+        # current user's vote, if any
+        request = self.context.get("request")
+        my_vote = None
+        if request and getattr(request, "user", None) and request.user.is_authenticated:
+            mine = next((v for v in votes if v.user_id == request.user.id), None)
+            my_vote = mine.decision if mine else None
+        return {
+            "approves": approves,
+            "rejects": rejects,
+            "required": required,
+            "my_vote": my_vote,
+        }
 
 
 class StageDecisionSerializer(serializers.Serializer):

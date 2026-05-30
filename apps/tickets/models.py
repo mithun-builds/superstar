@@ -226,3 +226,48 @@ class ApprovalStage(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["ticket", "order"], name="uniq_ticket_stage_order"),
         ]
+
+
+class StageVote(models.Model):
+    """One user's vote on an ApprovalStage.
+
+    Modes other than `any_member` need to accumulate votes before closing
+    the stage: `unanimous_team` needs every approver to vote approve;
+    `majority` needs >50% approve (or >50% reject). This row is what they
+    tally over.
+
+    For `specific_user` mode, the WorkflowStage.approvers list contains
+    user emails (instead of team slugs) — only that user can vote and
+    their single vote decides the stage.
+
+    Decisive vote: when a vote closes the stage, the deciding user is
+    copied to ApprovalStage.decided_by + decided_at + note for backward
+    compatibility with existing serializer/audit consumers.
+    """
+
+    class Decision(models.TextChoices):
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    stage = models.ForeignKey(ApprovalStage, on_delete=models.CASCADE, related_name="votes")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,  # preserve audit trail even if a user is removed
+        related_name="stage_votes",
+    )
+    decision = models.CharField(max_length=20, choices=Decision.choices)
+    note = models.TextField(blank=True)
+    decided_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["stage", "decided_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["stage", "user"], name="uniq_stage_voter"),
+        ]
+        indexes = [
+            models.Index(fields=["stage", "decision"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} voted {self.decision} on {self.stage}"

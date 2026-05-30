@@ -118,7 +118,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         cur = current_stage(ticket)
         return Response({
             "active_stage_id": str(cur.id) if cur else None,
-            "stages": ApprovalStageSerializer(stages, many=True).data,
+            "stages": ApprovalStageSerializer(stages, many=True, context={"request": request}).data,
         })
 
     @action(
@@ -151,8 +151,9 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         stage.refresh_from_db()
         next_active = current_stage(updated_ticket)
+        ctx = {"request": request}
         return Response({
-            "stage": ApprovalStageSerializer(stage).data,
+            "stage": ApprovalStageSerializer(stage, context=ctx).data,
             "ticket_status": updated_ticket.status,
-            "next_stage": ApprovalStageSerializer(next_active).data if next_active else None,
+            "next_stage": ApprovalStageSerializer(next_active, context=ctx).data if next_active else None,
         })

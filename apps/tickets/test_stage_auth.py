@@ -149,7 +149,7 @@ def test_decide_stage_api_returns_403_for_non_member(
         **HDRS,
     )
     assert resp.status_code == 403, resp.content
-    assert "team" in resp.json()["detail"].lower()
+    assert "not authorized" in resp.json()["detail"].lower()
 
 
 def test_decide_stage_api_succeeds_for_team_member(
