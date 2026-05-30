@@ -1,0 +1,38 @@
+# Sample golden file for `python manage.py eval_decisioning`.
+#
+# Each non-comment, non-blank line is one JSON object representing one
+# ground-truth example. The harness creates a ticket from `ticket_type`
+# + `payload`, runs the decisioning loop, and compares the outcome to
+# `expected_decision` (and optionally `expected_rule_ids`).
+#
+# Required keys:
+#   ticket_type        — must already exist on the target org
+#   payload            — the request fields the requester would submit
+#   expected_decision  — one of: approve | reject | escalate
+#
+# Optional keys:
+#   expected_rule_ids  — list (or single string) of rule_ids that SHOULD be
+#                        cited. Citation accuracy = at-least-one-match.
+#   example_id         — short label for the per-example report.
+#                        Defaults to `line-<n>` from the file.
+#   notes              — free text; ignored by the harness, used by humans.
+#
+# Lines starting with `#` and blank lines are skipped, so you can section
+# the file by use case as the golden set grows.
+#
+# Usage:
+#   python manage.py eval_decisioning examples/eval/sample.jsonl --org acme
+#   python manage.py eval_decisioning examples/eval/sample.jsonl --org acme \
+#       --min-precision 0.95 --min-refusal-recall 0.95 --json-out report.json
+#
+# Note: this sample assumes you've configured an `acme.access-request`
+# ticket type with a rule keyed "R-ENG-OK". Swap the IDs for your own.
+
+# --- happy path: clear approve ---
+{"example_id": "eng-approve", "ticket_type": "acme.access-request", "payload": {"role": "engineer"}, "expected_decision": "approve", "expected_rule_ids": ["R-ENG-OK"], "notes": "Engineers get default VPN access per policy."}
+
+# --- happy path: clear reject ---
+{"example_id": "intern-reject", "ticket_type": "acme.access-request", "payload": {"role": "intern"}, "expected_decision": "reject", "expected_rule_ids": ["R-INT-DENY"], "notes": "Interns blocked from VPN."}
+
+# --- safety check: should escalate (unknown role, no rule covers it) ---
+{"example_id": "consultant-escalate", "ticket_type": "acme.access-request", "payload": {"role": "consultant"}, "expected_decision": "escalate", "notes": "No matching rule — model must refuse rather than guess."}
