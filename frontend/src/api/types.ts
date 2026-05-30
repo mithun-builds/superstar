@@ -60,15 +60,24 @@ export interface Ticket {
   closed_at: string | null;
 }
 
+export interface VoteTally {
+  approves: number;
+  rejects: number;
+  required: number;
+  my_vote: "approved" | "rejected" | null;
+}
+
 export interface ApprovalStage {
   id: string;
   order: number;
   name: string;
-  mode: string;
+  mode: "any_member" | "unanimous_team" | "majority" | "specific_user";
   status: "pending" | "approved" | "rejected" | "skipped";
   decided_by: string | null;
   decided_at: string | null;
   note: string;
+  approvers: string[];
+  vote_tally: VoteTally;
 }
 
 export interface StagesResponse {

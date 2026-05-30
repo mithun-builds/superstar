@@ -448,3 +448,50 @@ pre {
   align-items: center;
 }
 .cir-label { font-weight: 600; font-size: 0.85rem; }
+
+/* ---------------- Vote tally on stages ---------------- */
+.mode-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  background: #eef0f3;
+  color: var(--fg-muted);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.vote-summary { margin: 0.4rem 0 0; display: grid; gap: 0.3rem; }
+.vote-counts {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+  font-size: 0.85rem;
+}
+.vote-pill {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.vote-pill-approve { background: #d4f0dd; color: var(--approve); }
+.vote-pill-reject  { background: #ffe1de; color: var(--reject); }
+.vote-mine {
+  margin-left: 0.4rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+}
+.vote-meter {
+  height: 4px;
+  background: #f0f0f3;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.vote-meter-fill {
+  height: 100%;
+  background: var(--approve);
+  transition: width 0.2s ease;
+}
+.small { font-size: 0.8rem; }
