@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Favicon — same mark as logo.svg, optimized for tiny rendering. Star
+     is slightly larger relative to the ticket so it stays legible at 16px. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <path
+    fill="#D7242B"
+    d="M 36 16 L 220 16 A 20 20 0 0 1 240 36 L 240 104 A 24 24 0 0 0 240 152 L 240 220 A 20 20 0 0 1 220 240 L 36 240 A 20 20 0 0 1 16 220 L 16 152 A 24 24 0 0 0 16 104 L 16 36 A 20 20 0 0 1 36 16 Z"
+  />
+  <!-- Star: R=76 outer, r=34 inner, centred (128,128). Sized larger than
+       the logo's star so it stays readable at 16px. -->
+  <polygon
+    fill="#F5C518"
+    points="128,52 148,100.5 200.3,104.5 160.3,138.5 172.7,189.5 128,162 83.3,189.5 95.7,138.5 55.7,104.5 108,100.5"
+  />
+</svg>

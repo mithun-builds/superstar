@@ -14,7 +14,10 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Link to="/" className="brand">SuperStar</Link>
+        <Link to="/" className="brand">
+          <img src="/logo.svg" alt="" className="brand-logo" aria-hidden="true" />
+          <span>SuperStar</span>
+        </Link>
         {slug && (
           <>
             <span className="sep">/</span>

@@ -433,25 +433,25 @@ function FieldRow({
         </div>
       )}
 
-      <div className="btn-row">
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={save.loading || !draft.name || !draft.label}
-          onClick={() => save.call(undefined)}
-        >
-          {save.loading ? "…" : isNew ? "Add field" : "Save"}
-        </button>
+      <div className="row-actions">
         {!isNew && (
           <button
             type="button"
-            className="btn btn-reject"
+            className="btn-danger"
             disabled={del.loading}
             onClick={() => del.call(undefined)}
           >
             Delete
           </button>
         )}
+        <button
+          type="button"
+          className={isNew ? "btn btn-primary" : "btn-quiet"}
+          disabled={save.loading || !draft.name || !draft.label}
+          onClick={() => save.call(undefined)}
+        >
+          {save.loading ? "…" : isNew ? "Add field" : "Save"}
+        </button>
       </div>
       {save.error && <p className="error">{save.error.message}</p>}
     </div>
@@ -629,25 +629,25 @@ function StageRow({
         onChange={(approvers) => setDraft({ ...draft, approvers })}
       />
 
-      <div className="btn-row">
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={save.loading || !draft.name}
-          onClick={() => save.call(undefined)}
-        >
-          {save.loading ? "…" : isNew ? "Add stage" : "Save"}
-        </button>
+      <div className="row-actions">
         {!isNew && (
           <button
             type="button"
-            className="btn btn-reject"
+            className="btn-danger"
             disabled={del.loading}
             onClick={() => del.call(undefined)}
           >
             Delete
           </button>
         )}
+        <button
+          type="button"
+          className={isNew ? "btn btn-primary" : "btn-quiet"}
+          disabled={save.loading || !draft.name}
+          onClick={() => save.call(undefined)}
+        >
+          {save.loading ? "…" : isNew ? "Add stage" : "Save"}
+        </button>
       </div>
       {save.error && <p className="error">{save.error.message}</p>}
     </div>
