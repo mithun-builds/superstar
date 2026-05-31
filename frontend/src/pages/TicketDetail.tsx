@@ -6,7 +6,7 @@
 //   - Approval chain (when ticket is escalated/in-flight)
 
 import { useParams } from "react-router-dom";
-import { ApiError, api } from "../api/client";
+import { api } from "../api/client";
 import { useApi, useMutation } from "../api/hooks";
 import type {
   DecideDispatched,
@@ -183,25 +183,27 @@ function DecisionPanel({ decision }: { decision: DecisionRow }) {
 
 /** Poll the by-task endpoint until the worker writes the Decision row.
  *
- *  The endpoint returns 202 while pending, 200 when ready. We follow that
- *  protocol — ApiError(status=202) means "keep waiting", anything else
- *  propagates as an actual error. Bails after POLL_TIMEOUT_MS so a stuck
- *  worker can't hang the UI forever. */
+ *  The endpoint returns 202 + `{status: "pending"}` while the worker is
+ *  still processing, 200 with the full DecisionRow when ready. Our HTTP
+ *  client treats 202 as success (any 2xx) so we discriminate on the
+ *  response body shape — DecisionPending has `status === "pending"` and
+ *  no `outcome`; DecisionRow has `outcome`. Bails after POLL_TIMEOUT_MS
+ *  so a stuck worker can't hang the UI forever. */
 async function pollForDecision(taskId: string, orgSlug: string): Promise<DecisionRow> {
   const deadline = Date.now() + POLL_TIMEOUT_MS;
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    try {
-      return await api<DecisionRow>(`/api/decisions/by-task/${taskId}/`, { orgSlug });
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 202) {
-        if (Date.now() > deadline) {
-          throw new Error(`Decisioning timed out after ${POLL_TIMEOUT_MS / 1000}s.`);
-        }
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-        continue;
-      }
-      throw e;
+    const body = await api<DecisionRow | { status: "pending"; task_id: string }>(
+      `/api/decisions/by-task/${taskId}/`,
+      { orgSlug },
+    );
+    if ("outcome" in body) {
+      return body;
     }
+    // Pending — keep polling until deadline.
+    if (Date.now() > deadline) {
+      throw new Error(`Decisioning timed out after ${POLL_TIMEOUT_MS / 1000}s.`);
+    }
+    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 }
