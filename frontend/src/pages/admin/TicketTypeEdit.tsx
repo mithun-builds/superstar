@@ -1,13 +1,17 @@
 // Admin → Ticket type edit screen.
 //
-// Three editor sections on one page:
-//   1. Identity + AI policy + system prompt (PATCH /api/admin/ticket-types/<id>/)
-//   2. Schema fields (CRUD on /fields/)
-//   3. Workflow stages (CRUD on /stages/)
-//
-// Each section saves independently. Keeping them split avoids a giant
-// transactional update + lets the admin iterate on one piece without
-// risking the others.
+// Layout choices (the "minimal design" pass):
+//   - Identity is a one-line editable header. Identifier shown as immutable
+//     mono text beside the name.
+//   - Active + AI-enabled live as pill toggles in the header — no big
+//     "AI policy" card up front.
+//   - Sensitive / power-user AI controls (system prompt, confidence threshold,
+//     require_citation, shadow_mode) live behind a single "Advanced" disclosure.
+//   - Fields + Stages are each rendered as a collapsible list. Each row is a
+//     one-line summary; click to expand into the full editor. Only one row is
+//     expanded at a time so the page never balloons.
+//   - Add-row affordance is a quiet dashed "+ Add field" / "+ Add stage" at the
+//     bottom of each list, not another always-mounted form template.
 
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -29,56 +33,60 @@ export default function TicketTypeEdit() {
   const path = `/api/admin/ticket-types/${ticketTypeId}/`;
   const ttState = useApi<AdminTicketType>(path, { orgSlug });
 
-  if (ttState.loading) return <p>Loading…</p>;
+  if (ttState.loading) return <p className="muted">Loading…</p>;
   if (ttState.error) return <p className="error">{ttState.error.message}</p>;
   if (!ttState.data) return null;
 
+  const tt = ttState.data;
   return (
-    <section className="page-admin-edit">
-      <header className="page-header">
-        <div>
-          <h1>{ttState.data.display_name}</h1>
-          <p className="muted">
-            <code>{ttState.data.identifier}</code> · {ttState.data.is_active ? "active" : "inactive"}
-          </p>
-        </div>
-        <Link to={`/o/${orgSlug}/admin/ticket-types/${ticketTypeId}/rules`} className="btn">
-          KB rules →
-        </Link>
-      </header>
-
-      <IdentityAndAiPolicy
-        ticketType={ttState.data}
+    <>
+      <IdentityHeader
+        ticketType={tt}
         orgSlug={orgSlug}
         onSaved={() => ttState.reload()}
+        rulesHref={`/o/${orgSlug}/admin/ticket-types/${ticketTypeId}/rules`}
       />
-      <FieldsEditor
-        ticketTypeId={ticketTypeId!}
-        orgSlug={orgSlug}
-        fields={ttState.data.fields}
-        onChanged={() => ttState.reload()}
-      />
-      <StagesEditor
-        ticketTypeId={ticketTypeId!}
-        orgSlug={orgSlug}
-        stages={ttState.data.workflow_stages}
-        onChanged={() => ttState.reload()}
-      />
-    </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h3>Fields</h3>
+        </div>
+        <FieldsList
+          ticketTypeId={ticketTypeId!}
+          orgSlug={orgSlug}
+          fields={tt.fields}
+          onChanged={() => ttState.reload()}
+        />
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h3>Workflow</h3>
+        </div>
+        <StagesList
+          ticketTypeId={ticketTypeId!}
+          orgSlug={orgSlug}
+          stages={tt.workflow_stages}
+          onChanged={() => ttState.reload()}
+        />
+      </section>
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section 1: identity + AI policy + system prompt
+// Identity header — inline-editable display name + status pills + Advanced
 // ---------------------------------------------------------------------------
-function IdentityAndAiPolicy({
+function IdentityHeader({
   ticketType,
   orgSlug,
   onSaved,
+  rulesHref,
 }: {
   ticketType: AdminTicketType;
   orgSlug: string;
   onSaved: () => void;
+  rulesHref: string;
 }) {
   const [form, setForm] = useState({
     display_name: ticketType.display_name,
@@ -91,6 +99,17 @@ function IdentityAndAiPolicy({
     shadow_mode: ticketType.shadow_mode,
     system_prompt: ticketType.system_prompt,
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const dirty =
+    form.display_name !== ticketType.display_name ||
+    form.description !== ticketType.description ||
+    form.is_active !== ticketType.is_active ||
+    form.sequential !== ticketType.sequential ||
+    form.ai_enabled !== ticketType.ai_enabled ||
+    form.confidence_threshold !== ticketType.confidence_threshold ||
+    form.require_citation !== ticketType.require_citation ||
+    form.shadow_mode !== ticketType.shadow_mode ||
+    form.system_prompt !== ticketType.system_prompt;
 
   const save = useMutation(async () => {
     await api(`/api/admin/ticket-types/${ticketType.id}/`, {
@@ -102,193 +121,265 @@ function IdentityAndAiPolicy({
   });
 
   return (
-    <section className="card">
-      <h3>Identity &amp; AI policy</h3>
-
-      <div className="form-field">
-        <label>Display name</label>
+    <header className="page-header">
+      <div style={{ display: "grid", gap: "var(--space-2)", flex: 1, minWidth: 0 }}>
         <input
           type="text"
           value={form.display_name}
           onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+          style={{
+            fontSize: "30px",
+            fontWeight: 500,
+            padding: "2px 4px",
+            margin: "-2px -4px",
+            border: "1px solid transparent",
+            borderRadius: "var(--radius-md)",
+            letterSpacing: "-0.015em",
+            background: "transparent",
+            lineHeight: 1.2,
+          }}
         />
-      </div>
-      <div className="form-field">
-        <label>Description</label>
-        <textarea
-          value={form.description}
-          rows={2}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-        />
-      </div>
+        <div className="ticket-meta">
+          <code>{ticketType.identifier}</code>
+          <span className="sep-dot">·</span>
+          <StatusToggle
+            label="Active"
+            on={form.is_active}
+            onChange={(v) => setForm({ ...form, is_active: v })}
+          />
+          <span className="sep-dot">·</span>
+          <StatusToggle
+            label="AI on"
+            offLabel="AI off"
+            on={form.ai_enabled}
+            onChange={(v) => setForm({ ...form, ai_enabled: v })}
+          />
+          {form.shadow_mode && (
+            <>
+              <span className="sep-dot">·</span>
+              <span className="status status-escalate">Shadow mode</span>
+            </>
+          )}
+        </div>
 
-      <div className="checkbox-row">
-        <label>
-          <input
-            type="checkbox"
-            checked={form.is_active}
-            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-          />{" "}
-          Active
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={form.sequential}
-            onChange={(e) => setForm({ ...form, sequential: e.target.checked })}
-          />{" "}
-          Sequential workflow
-        </label>
-      </div>
-
-      <hr />
-      <h4>AI decisioning</h4>
-
-      <div className="checkbox-row">
-        <label>
-          <input
-            type="checkbox"
-            checked={form.ai_enabled}
-            onChange={(e) => setForm({ ...form, ai_enabled: e.target.checked })}
-          />{" "}
-          AI enabled
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={form.require_citation}
-            onChange={(e) => setForm({ ...form, require_citation: e.target.checked })}
-          />{" "}
-          Require citation
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={form.shadow_mode}
-            onChange={(e) => setForm({ ...form, shadow_mode: e.target.checked })}
-          />{" "}
-          Shadow mode <small className="muted">(log only, don't apply)</small>
-        </label>
-      </div>
-
-      <div className="form-field">
-        <label>Confidence threshold (0 – 1)</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0"
-          max="1"
-          value={form.confidence_threshold}
-          onChange={(e) =>
-            setForm({ ...form, confidence_threshold: Number(e.target.value) })
-          }
-        />
-      </div>
-      <div className="form-field">
-        <label>System prompt</label>
-        <textarea
-          rows={12}
-          value={form.system_prompt}
-          onChange={(e) => setForm({ ...form, system_prompt: e.target.value })}
-          placeholder="You are SuperStar's decisioning engine for ..."
-        />
-        <small className="help">
-          Prepended to every LLM call. Define the output JSON schema and the
-          grounding rules here.
-        </small>
-      </div>
-
-      <div className="btn-row">
         <button
           type="button"
-          className="btn btn-primary"
-          disabled={save.loading}
-          onClick={() => save.call(undefined)}
+          className="disclosure"
+          onClick={() => setShowAdvanced((v) => !v)}
+          style={{ marginTop: "var(--space-2)" }}
         >
-          {save.loading ? "Saving…" : "Save identity & AI policy"}
+          {showAdvanced ? "▾" : "▸"} {showAdvanced ? "Hide" : "Show"} advanced settings
         </button>
-        {save.error && <span className="error">{save.error.message}</span>}
+        {showAdvanced && (
+          <div className="disclosure-panel">
+            <div className="form-field">
+              <label>Description</label>
+              <textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Optional — shown on the requester form."
+              />
+            </div>
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={form.sequential}
+                onChange={(e) => setForm({ ...form, sequential: e.target.checked })}
+              />
+              Sequential workflow
+            </label>
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={form.require_citation}
+                onChange={(e) => setForm({ ...form, require_citation: e.target.checked })}
+              />
+              Require citation (guard 1)
+            </label>
+            <label className="checkbox-inline">
+              <input
+                type="checkbox"
+                checked={form.shadow_mode}
+                onChange={(e) => setForm({ ...form, shadow_mode: e.target.checked })}
+              />
+              Shadow mode — log decisions but don't apply them
+            </label>
+            <div className="form-field">
+              <label>Confidence threshold (0 – 1)</label>
+              <input
+                type="number" step="0.01" min="0" max="1"
+                value={form.confidence_threshold}
+                onChange={(e) =>
+                  setForm({ ...form, confidence_threshold: Number(e.target.value) })
+                }
+                style={{ width: "120px" }}
+              />
+            </div>
+            <div className="form-field">
+              <label>System prompt</label>
+              <textarea
+                rows={10}
+                value={form.system_prompt}
+                onChange={(e) => setForm({ ...form, system_prompt: e.target.value })}
+                placeholder="You are SuperStar's decisioning engine for ..."
+                style={{ fontFamily: "var(--font-mono)", fontSize: "12.5px" }}
+              />
+              <small className="help">
+                Prepended to every LLM call. Define the JSON schema and the grounding rules here.
+              </small>
+            </div>
+          </div>
+        )}
       </div>
-    </section>
+
+      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+        <Link to={rulesHref} className="btn">KB rules</Link>
+        {dirty && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={save.loading}
+            onClick={() => save.call(undefined)}
+          >
+            {save.loading ? "Saving…" : "Save"}
+          </button>
+        )}
+      </div>
+    </header>
+  );
+}
+
+/** A small toggle that reads as a status pill but flips on click. */
+function StatusToggle({
+  label, offLabel, on, onChange,
+}: {
+  label: string;
+  offLabel?: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`status ${on ? "status-decided" : "status-closed"}`}
+      style={{ cursor: "pointer", border: "none", padding: "2px 8px" }}
+      onClick={() => onChange(!on)}
+      aria-pressed={on}
+    >
+      {on ? label : (offLabel ?? `${label} off`)}
+    </button>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section 2: schema fields editor
+// Fields — collapsible list
 // ---------------------------------------------------------------------------
-function FieldsEditor({
-  ticketTypeId,
-  orgSlug,
-  fields,
-  onChanged,
+function FieldsList({
+  ticketTypeId, orgSlug, fields, onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   fields: AdminTicketTypeField[];
   onChanged: () => void;
 }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const siblingNames = fields.map((f) => f.name).filter(Boolean);
+
   return (
-    <section className="card">
-      <h3>Schema fields</h3>
-      <p className="muted">
-        Each row is a form input requesters fill in when submitting a ticket of
-        this type. Field names become JSON keys on the ticket payload.
-      </p>
+    <div className="list">
+      {fields.length === 0 && !adding && (
+        <p className="muted">No fields yet.</p>
+      )}
+      {fields.map((f) =>
+        openId === f.id ? (
+          <FieldEdit
+            key={f.id}
+            ticketTypeId={ticketTypeId}
+            orgSlug={orgSlug}
+            field={f}
+            siblingNames={siblingNames.filter((n) => n !== f.name)}
+            onClose={() => setOpenId(null)}
+            onChanged={() => { onChanged(); setOpenId(null); }}
+          />
+        ) : (
+          <button
+            key={f.id}
+            type="button"
+            className="list-row"
+            onClick={() => setOpenId(f.id)}
+            style={{ textAlign: "left", width: "100%", background: "transparent", font: "inherit", cursor: "pointer" }}
+          >
+            <FieldSummary field={f} />
+            <span className="muted small">Edit →</span>
+          </button>
+        ),
+      )}
 
-      {fields.length === 0 && <p className="muted">No fields yet.</p>}
-
-      {(() => {
-        const siblingNames = fields.map((f) => f.name).filter(Boolean);
-        return (
-          <>
-            {fields.map((f) => (
-              <FieldRow
-                key={f.id}
-                ticketTypeId={ticketTypeId}
-                orgSlug={orgSlug}
-                field={f}
-                siblingNames={siblingNames.filter((n) => n !== f.name)}
-                onChanged={onChanged}
-              />
-            ))}
-            <FieldRow
-              ticketTypeId={ticketTypeId}
-              orgSlug={orgSlug}
-              field={null}
-              siblingNames={siblingNames}
-              onChanged={onChanged}
-            />
-          </>
-        );
-      })()}
-    </section>
+      {adding ? (
+        <FieldEdit
+          ticketTypeId={ticketTypeId}
+          orgSlug={orgSlug}
+          field={null}
+          siblingNames={siblingNames}
+          onClose={() => setAdding(false)}
+          onChanged={() => { onChanged(); setAdding(false); }}
+        />
+      ) : (
+        <button type="button" className="list-add" onClick={() => setAdding(true)}>
+          + Add field
+        </button>
+      )}
+    </div>
   );
 }
 
-function FieldRow({
-  ticketTypeId,
-  orgSlug,
-  field,
-  siblingNames,
-  onChanged,
+function FieldSummary({ field }: { field: AdminTicketTypeField }) {
+  const hasConditions =
+    (field.show_if && Object.keys(field.show_if).length > 0) ||
+    (field.choices_if && field.choices_if.length > 0);
+  const choicesNote =
+    field.field_type === "enum"
+      ? ` · ${field.choices.length} option${field.choices.length === 1 ? "" : "s"}`
+      : "";
+
+  return (
+    <span className="list-row-summary">
+      <span className="mono">{field.name}</span>
+      <span className="sep-dot">·</span>
+      <span>{field.field_type}{choicesNote}</span>
+      {field.required && (
+        <>
+          <span className="sep-dot">·</span>
+          <span className="list-row-meta">Required</span>
+        </>
+      )}
+      {hasConditions && (
+        <>
+          <span className="sep-dot">·</span>
+          <span className="status status-open" style={{ fontSize: "10px" }}>Conditions</span>
+        </>
+      )}
+    </span>
+  );
+}
+
+function FieldEdit({
+  ticketTypeId, orgSlug, field, siblingNames, onClose, onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   field: AdminTicketTypeField | null;
   siblingNames: string[];
+  onClose: () => void;
   onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<Partial<AdminTicketTypeField>>(
     field ?? {
-      order: 0,
-      name: "",
-      field_type: "string",
-      label: "",
-      required: true,
-      choices: [],
-      help_text: "",
-      show_if: null,
-      choices_if: [],
+      order: 0, name: "", field_type: "string", label: "",
+      required: true, choices: [], help_text: "",
+      show_if: null, choices_if: [],
     },
   );
   const [showConditions, setShowConditions] = useState(
@@ -300,111 +391,98 @@ function FieldRow({
   const save = useMutation(async () => {
     if (isNew) {
       await api(`/api/admin/ticket-types/${ticketTypeId}/fields/`, {
-        method: "POST",
-        orgSlug,
-        body: draft,
-      });
-      setDraft({
-        order: 0,
-        name: "",
-        field_type: "string",
-        label: "",
-        required: true,
-        choices: [],
-        help_text: "",
-        show_if: null,
-        choices_if: [],
+        method: "POST", orgSlug, body: draft,
       });
     } else {
       await api(`/api/admin/ticket-types/${ticketTypeId}/fields/${field.id}/`, {
-        method: "PATCH",
-        orgSlug,
-        body: draft,
+        method: "PATCH", orgSlug, body: draft,
       });
     }
     onChanged();
   });
-
   const del = useMutation(async () => {
     if (!field) return;
     await api(`/api/admin/ticket-types/${ticketTypeId}/fields/${field.id}/`, {
-      method: "DELETE",
-      orgSlug,
+      method: "DELETE", orgSlug,
     });
     onChanged();
   });
 
   return (
-    <div className={`row-edit ${isNew ? "row-new" : ""}`}>
-      <div className="row-inputs">
-        <input
-          type="number"
-          className="input-tiny"
-          value={draft.order ?? 0}
-          onChange={(e) => setDraft({ ...draft, order: Number(e.target.value) })}
-          placeholder="order"
-        />
-        <input
-          type="text"
-          className="input-narrow"
-          value={draft.name ?? ""}
-          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          placeholder="field name (e.g. role)"
-        />
-        <select
-          value={draft.field_type ?? "string"}
-          onChange={(e) =>
-            setDraft({ ...draft, field_type: e.target.value as AdminTicketTypeField["field_type"] })
-          }
-        >
-          <option value="string">string</option>
-          <option value="int">int</option>
-          <option value="bool">bool</option>
-          <option value="text">text</option>
-          <option value="enum">enum</option>
-        </select>
+    <div className="list-row-expanded">
+      <div className="grid-two">
+        <div className="form-field">
+          <label>Name (JSON key)</label>
+          <input
+            type="text"
+            value={draft.name ?? ""}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            placeholder="e.g. role"
+          />
+        </div>
+        <div className="form-field">
+          <label>Type</label>
+          <select
+            value={draft.field_type ?? "string"}
+            onChange={(e) =>
+              setDraft({ ...draft, field_type: e.target.value as AdminTicketTypeField["field_type"] })
+            }
+          >
+            <option value="string">string</option>
+            <option value="int">int</option>
+            <option value="bool">bool</option>
+            <option value="text">text</option>
+            <option value="enum">enum</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="form-field">
+        <label>Display label</label>
         <input
           type="text"
           value={draft.label ?? ""}
           onChange={(e) => setDraft({ ...draft, label: e.target.value })}
-          placeholder="display label"
+          placeholder="What requesters see"
         />
-        <label className="checkbox-inline">
-          <input
-            type="checkbox"
-            checked={draft.required ?? true}
-            onChange={(e) => setDraft({ ...draft, required: e.target.checked })}
-          />{" "}
-          required
-        </label>
       </div>
 
       {draft.field_type === "enum" && (
-        <input
-          type="text"
-          value={(draft.choices ?? []).join(", ")}
-          onChange={(e) =>
-            setDraft({
-              ...draft,
-              choices: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-            })
-          }
-          placeholder="default choices, comma-separated"
-        />
+        <div className="form-field">
+          <label>Choices (comma-separated)</label>
+          <input
+            type="text"
+            value={(draft.choices ?? []).join(", ")}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                choices: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            placeholder="engineer, ops, finance"
+          />
+        </div>
       )}
 
-      <div className="conditions-row">
-        <button
-          type="button"
-          className="link-btn"
-          onClick={() => setShowConditions((v) => !v)}
-        >
-          {showConditions ? "▾" : "▸"} Conditions
-          {(draft.show_if && Object.keys(draft.show_if).length > 0) || (draft.choices_if && draft.choices_if.length > 0)
-            ? <span className="chip chip-active inline-chip">active</span>
-            : null}
-        </button>
-      </div>
+      <label className="checkbox-inline">
+        <input
+          type="checkbox"
+          checked={draft.required ?? true}
+          onChange={(e) => setDraft({ ...draft, required: e.target.checked })}
+        />
+        Required
+      </label>
+
+      <button
+        type="button"
+        className="disclosure"
+        onClick={() => setShowConditions((v) => !v)}
+      >
+        {showConditions ? "▾" : "▸"} Conditions
+        {((draft.show_if && Object.keys(draft.show_if).length > 0) || (draft.choices_if && draft.choices_if.length > 0)) && (
+          <span className="status status-open" style={{ fontSize: "10px", marginLeft: 6 }}>active</span>
+        )}
+      </button>
 
       {showConditions && (
         <div className="conditions-panel">
@@ -418,11 +496,9 @@ function FieldRow({
               knownFieldNames={siblingNames}
             />
             <small className="help">
-              Empty = always show. Otherwise this field renders only when ALL
-              conditions match the request payload.
+              Empty = always show. Otherwise this field renders only when ALL conditions match.
             </small>
           </div>
-
           {draft.field_type === "enum" && (
             <ChoicesIfEditor
               value={draft.choices_if ?? []}
@@ -444,9 +520,10 @@ function FieldRow({
             Delete
           </button>
         )}
+        <button type="button" className="btn-quiet" onClick={onClose}>Cancel</button>
         <button
           type="button"
-          className={isNew ? "btn btn-primary" : "btn-quiet"}
+          className="btn btn-primary"
           disabled={save.loading || !draft.name || !draft.label}
           onClick={() => save.call(undefined)}
         >
@@ -459,22 +536,19 @@ function FieldRow({
 }
 
 // ---------------------------------------------------------------------------
-// Section 3: workflow stages editor
+// Stages — collapsible list
 // ---------------------------------------------------------------------------
-function StagesEditor({
-  ticketTypeId,
-  orgSlug,
-  stages,
-  onChanged,
+function StagesList({
+  ticketTypeId, orgSlug, stages, onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   stages: AdminWorkflowStage[];
   onChanged: () => void;
 }) {
-  // Fetch the org's teams so each StageRow can render a multi-select of
-  // existing team slugs instead of asking admins to type comma-separated
-  // strings that have to exactly match team slugs to actually authorize anyone.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
   const teamsState = useApi<Paginated<AdminTeam> | AdminTeam[]>(
     "/api/admin/teams/",
     { orgSlug },
@@ -486,141 +560,162 @@ function StagesEditor({
   })();
 
   return (
-    <section className="card">
-      <h3>Workflow stages</h3>
-      <p className="muted">
-        On escalation, SuperStar materializes a stage per row, in order. The
-        ticket advances when the active stage is approved by a member of one of
-        its approver teams.
-      </p>
+    <div className="list">
+      {stages.length === 0 && !adding && <p className="muted">No stages yet.</p>}
+      {stages.map((s) =>
+        openId === s.id ? (
+          <StageEdit
+            key={s.id}
+            ticketTypeId={ticketTypeId}
+            orgSlug={orgSlug}
+            stage={s}
+            knownTeamSlugs={teamSlugs}
+            onClose={() => setOpenId(null)}
+            onChanged={() => { onChanged(); setOpenId(null); }}
+          />
+        ) : (
+          <button
+            key={s.id}
+            type="button"
+            className="list-row"
+            onClick={() => setOpenId(s.id)}
+            style={{ textAlign: "left", width: "100%", background: "transparent", font: "inherit", cursor: "pointer" }}
+          >
+            <StageSummary stage={s} knownTeamSlugs={teamSlugs} />
+            <span className="muted small">Edit →</span>
+          </button>
+        ),
+      )}
 
-      {stages.length === 0 && <p className="muted">No stages yet.</p>}
-
-      {stages.map((s) => (
-        <StageRow
-          key={s.id}
+      {adding ? (
+        <StageEdit
           ticketTypeId={ticketTypeId}
           orgSlug={orgSlug}
-          stage={s}
+          stage={null}
           knownTeamSlugs={teamSlugs}
-          onChanged={onChanged}
+          onClose={() => setAdding(false)}
+          onChanged={() => { onChanged(); setAdding(false); }}
         />
-      ))}
-
-      <StageRow
-        ticketTypeId={ticketTypeId}
-        orgSlug={orgSlug}
-        stage={null}
-        knownTeamSlugs={teamSlugs}
-        onChanged={onChanged}
-      />
+      ) : (
+        <button type="button" className="list-add" onClick={() => setAdding(true)}>
+          + Add stage
+        </button>
+      )}
 
       {teamSlugs.length === 0 && (
         <p className="muted small">
-          No teams configured yet. <a href={`/o/${orgSlug}/admin/teams`}>Create one</a> first,
-          then come back to add it as an approver group.
+          No teams yet. <a href={`/o/${orgSlug}/admin/teams`}>Create one</a> first.
         </p>
       )}
-    </section>
+    </div>
   );
 }
 
-function StageRow({
-  ticketTypeId,
-  orgSlug,
-  stage,
-  knownTeamSlugs,
-  onChanged,
+function StageSummary({
+  stage, knownTeamSlugs,
+}: {
+  stage: AdminWorkflowStage;
+  knownTeamSlugs: string[];
+}) {
+  const modeLabel: Record<string, string> = {
+    any_member: "any member",
+    unanimous_team: "unanimous",
+    majority: "majority",
+    specific_user: "specific user",
+  };
+  const stale = stage.approvers.filter((s) => !knownTeamSlugs.includes(s));
+  return (
+    <span className="list-row-summary">
+      <span style={{ color: "var(--ink-500)" }}>{stage.order}</span>
+      <span style={{ fontWeight: 500 }}>{stage.name || "(unnamed)"}</span>
+      <span className="sep-dot">·</span>
+      <span className="list-row-meta">{modeLabel[stage.mode] ?? stage.mode}</span>
+      {stage.approvers.length > 0 && (
+        <>
+          <span className="sep-dot">·</span>
+          <span className="list-row-meta">{stage.approvers.join(", ")}</span>
+        </>
+      )}
+      {stale.length > 0 && (
+        <span className="status status-rejected" style={{ fontSize: "10px" }}>stale teams</span>
+      )}
+    </span>
+  );
+}
+
+function StageEdit({
+  ticketTypeId, orgSlug, stage, knownTeamSlugs, onClose, onChanged,
 }: {
   ticketTypeId: string;
   orgSlug: string;
   stage: AdminWorkflowStage | null;
   knownTeamSlugs: string[];
+  onClose: () => void;
   onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<Partial<AdminWorkflowStage>>(
     stage ?? {
-      order: 0,
-      name: "",
-      approvers: [],
-      mode: "any_member",
-      sla_hours: null,
+      order: 0, name: "", approvers: [], mode: "any_member", sla_hours: null,
     },
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const isNew = stage === null;
 
   const save = useMutation(async () => {
     if (isNew) {
       await api(`/api/admin/ticket-types/${ticketTypeId}/stages/`, {
-        method: "POST",
-        orgSlug,
-        body: draft,
-      });
-      setDraft({
-        order: 0,
-        name: "",
-        approvers: [],
-        mode: "any_member",
-        sla_hours: null,
+        method: "POST", orgSlug, body: draft,
       });
     } else {
       await api(`/api/admin/ticket-types/${ticketTypeId}/stages/${stage.id}/`, {
-        method: "PATCH",
-        orgSlug,
-        body: draft,
+        method: "PATCH", orgSlug, body: draft,
       });
     }
     onChanged();
   });
-
   const del = useMutation(async () => {
     if (!stage) return;
     await api(`/api/admin/ticket-types/${ticketTypeId}/stages/${stage.id}/`, {
-      method: "DELETE",
-      orgSlug,
+      method: "DELETE", orgSlug,
     });
     onChanged();
   });
 
   return (
-    <div className={`row-edit ${isNew ? "row-new" : ""}`}>
-      <div className="row-inputs">
-        <input
-          type="number"
-          className="input-tiny"
-          value={draft.order ?? 0}
-          onChange={(e) => setDraft({ ...draft, order: Number(e.target.value) })}
-          placeholder="order"
-        />
+    <div className="list-row-expanded">
+      <div className="form-field">
+        <label>Stage name</label>
         <input
           type="text"
           value={draft.name ?? ""}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          placeholder="stage name (e.g. Security review)"
+          placeholder="e.g. Security review"
         />
-        <select
-          value={draft.mode ?? "any_member"}
-          onChange={(e) =>
-            setDraft({ ...draft, mode: e.target.value as AdminWorkflowStage["mode"] })
-          }
-        >
-          <option value="any_member">any member</option>
-          <option value="unanimous_team">unanimous team</option>
-          <option value="majority">majority</option>
-          <option value="specific_user">specific user</option>
-        </select>
-        <input
-          type="number"
-          className="input-tiny"
-          value={draft.sla_hours ?? ""}
-          onChange={(e) =>
-            setDraft({
-              ...draft,
-              sla_hours: e.target.value === "" ? null : Number(e.target.value),
-            })
-          }
-          placeholder="SLA hrs"
-        />
+      </div>
+
+      <div className="grid-two">
+        <div className="form-field">
+          <label>Order</label>
+          <input
+            type="number"
+            value={draft.order ?? 0}
+            onChange={(e) => setDraft({ ...draft, order: Number(e.target.value) })}
+          />
+        </div>
+        <div className="form-field">
+          <label>Mode</label>
+          <select
+            value={draft.mode ?? "any_member"}
+            onChange={(e) =>
+              setDraft({ ...draft, mode: e.target.value as AdminWorkflowStage["mode"] })
+            }
+          >
+            <option value="any_member">any member</option>
+            <option value="unanimous_team">unanimous team</option>
+            <option value="majority">majority</option>
+            <option value="specific_user">specific user</option>
+          </select>
+        </div>
       </div>
 
       <ApproverTeamSelector
@@ -628,6 +723,33 @@ function StageRow({
         knownTeamSlugs={knownTeamSlugs}
         onChange={(approvers) => setDraft({ ...draft, approvers })}
       />
+
+      <button
+        type="button"
+        className="disclosure"
+        onClick={() => setShowAdvanced((v) => !v)}
+      >
+        {showAdvanced ? "▾" : "▸"} {showAdvanced ? "Hide" : "Show"} SLA
+      </button>
+      {showAdvanced && (
+        <div className="disclosure-panel">
+          <div className="form-field">
+            <label>SLA (hours)</label>
+            <input
+              type="number"
+              value={draft.sla_hours ?? ""}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  sla_hours: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              placeholder="e.g. 24"
+              style={{ width: "120px" }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="row-actions">
         {!isNew && (
@@ -640,9 +762,10 @@ function StageRow({
             Delete
           </button>
         )}
+        <button type="button" className="btn-quiet" onClick={onClose}>Cancel</button>
         <button
           type="button"
-          className={isNew ? "btn btn-primary" : "btn-quiet"}
+          className="btn btn-primary"
           disabled={save.loading || !draft.name}
           onClick={() => save.call(undefined)}
         >
@@ -654,38 +777,33 @@ function StageRow({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Helpers — preserved from the prior version
+// ---------------------------------------------------------------------------
 
 /** Multi-select of team slugs in this org + a fallback for stages that
  *  reference team slugs no longer present (preserved as "(stale)" chips so
  *  we don't silently erase them on save). */
 function ApproverTeamSelector({
-  selected,
-  knownTeamSlugs,
-  onChange,
+  selected, knownTeamSlugs, onChange,
 }: {
   selected: string[];
   knownTeamSlugs: string[];
   onChange: (next: string[]) => void;
 }) {
-  const stale = selected.filter((s) => !knownTeamSlugs.includes(s));
-
   const toggle = (slug: string) => {
-    if (selected.includes(slug)) {
-      onChange(selected.filter((s) => s !== slug));
-    } else {
-      onChange([...selected, slug]);
-    }
+    onChange(selected.includes(slug) ? selected.filter((s) => s !== slug) : [...selected, slug]);
   };
-
   return (
     <div className="approver-team-selector">
+      <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--ink-700)" }}>Approver teams</label>
       <div className="chip-row">
         {knownTeamSlugs.map((slug) => {
           const on = selected.includes(slug);
           return (
             <button
-              type="button"
               key={slug}
+              type="button"
               className={`chip ${on ? "chip-active" : ""}`}
               onClick={() => toggle(slug)}
             >
@@ -693,96 +811,77 @@ function ApproverTeamSelector({
             </button>
           );
         })}
-        {stale.map((slug) => (
+        {selected.filter((s) => !knownTeamSlugs.includes(s)).map((slug) => (
           <button
+            key={slug}
             type="button"
-            key={`stale-${slug}`}
             className="chip chip-stale"
-            title="No team with this slug exists in this org. Click to remove."
-            onClick={() => onChange(selected.filter((s) => s !== slug))}
+            onClick={() => toggle(slug)}
+            title="This team no longer exists. Click to remove."
           >
-            {slug} <span className="muted">(stale)</span>
+            {slug} (stale)
           </button>
         ))}
       </div>
-      {knownTeamSlugs.length === 0 && (
-        <small className="muted">
-          No teams in this org yet. Create one in Admin → Teams.
-        </small>
-      )}
     </div>
   );
 }
 
-
-/** Editor for the choices_if rule list — cascading dropdowns.
- *  Each rule has a conditions block (uses AppliesWhenBuilder) + a list of
- *  choices that should be active when those conditions match. First rule
- *  that matches wins; if none, the field's static `choices` is used. */
 function ChoicesIfEditor({
-  value,
-  onChange,
-  siblingNames,
+  value, onChange, siblingNames,
 }: {
-  value: Array<{ conditions: Record<string, unknown>; choices: string[] }>;
-  onChange: (v: Array<{ conditions: Record<string, unknown>; choices: string[] }>) => void;
+  value: NonNullable<AdminTicketTypeField["choices_if"]>;
+  onChange: (next: NonNullable<AdminTicketTypeField["choices_if"]>) => void;
   siblingNames: string[];
 }) {
-  const setRule = (i: number, patch: Partial<{ conditions: Record<string, unknown>; choices: string[] }>) =>
-    onChange(value.map((r, j) => (i === j ? { ...r, ...patch } : r)));
-  const addRule = () => onChange([...value, { conditions: {}, choices: [] }]);
-  const removeRule = (i: number) => onChange(value.filter((_, j) => i !== j));
+  const rules = value ?? [];
+  const setRule = (
+    i: number,
+    next: { conditions: Record<string, unknown>; choices: string[] },
+  ) => onChange(rules.map((r, idx) => (idx === i ? next : r)));
+  const remove = (i: number) => onChange(rules.filter((_, idx) => idx !== i));
+  const addRule = () =>
+    onChange([...rules, { conditions: {}, choices: [] }]);
 
   return (
     <div className="form-field">
-      <label>Choices change when…</label>
+      <label>Cascading choices (choices_if)</label>
       <small className="help">
-        Each rule overrides the default <code>choices</code> when its conditions match.
-        First match wins. If no rule matches, default choices are used.
+        First matching rule wins. If no rule matches, the field's static
+        choices are used as a fallback.
       </small>
-      {value.length === 0 && (
-        <p className="muted small">
-          No rules — default choices apply to all requests.
-        </p>
-      )}
-      {value.map((rule, i) => (
+      {rules.length === 0 && <p className="muted small">No rules — falls back to static choices.</p>}
+      {rules.map((rule, i) => (
         <div key={i} className="choices-if-rule">
           <div className="cir-header">
-            <strong>Rule {i + 1}</strong>
-            <button
-              type="button"
-              className="btn-icon"
-              onClick={() => removeRule(i)}
-              title="Remove rule"
-            >
-              ✕
-            </button>
+            <span className="cir-label">Rule {i + 1}</span>
+            <button type="button" className="btn-icon" onClick={() => remove(i)}>×</button>
           </div>
-          <small className="help">When…</small>
-          <AppliesWhenBuilder
-            value={rule.conditions}
-            onChange={(conditions) => setRule(i, { conditions })}
-            knownFieldNames={siblingNames}
-          />
-          <div style={{ marginTop: "0.5rem" }}>
-            <label className="cir-label">…then choices are:</label>
+          <div className="form-field">
+            <label className="small">When…</label>
+            <AppliesWhenBuilder
+              value={rule.conditions}
+              onChange={(v) => setRule(i, { ...rule, conditions: v })}
+              knownFieldNames={siblingNames}
+            />
+          </div>
+          <div className="form-field">
+            <label className="small">Show these choices</label>
             <input
               type="text"
               value={rule.choices.join(", ")}
               onChange={(e) =>
                 setRule(i, {
+                  ...rule,
                   choices: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
                 })
               }
-              placeholder="comma-separated values"
-              style={{ width: "100%" }}
+              placeholder="base_unit, wall_unit, sink_unit"
             />
           </div>
         </div>
       ))}
-      <button type="button" className="btn" onClick={addRule}>
-        + Add rule
-      </button>
+      <button type="button" className="link-btn" onClick={addRule}>+ Add rule</button>
     </div>
   );
 }
