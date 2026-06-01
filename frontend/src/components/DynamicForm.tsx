@@ -114,6 +114,10 @@ export default function DynamicForm({
               {!f.required && <OptionalMark />}
             </label>
 
+            {/* Google-Form ordering: explanation first, then input. The user
+                reads the question, reads the help, then answers. */}
+            {f.help_text && <small className="help">{f.help_text}</small>}
+
             {f.type === "enum" ? (
               <select
                 id={`f-${f.name}`}
@@ -133,7 +137,6 @@ export default function DynamicForm({
                 onChange={(e) => set(f.name, e.target.value)}
                 required={f.required}
                 rows={4}
-                placeholder={f.help_text || undefined}
               />
             ) : f.type === "int" ? (
               <input
@@ -151,12 +154,6 @@ export default function DynamicForm({
                 onChange={(e) => set(f.name, e.target.value)}
                 required={f.required}
               />
-            )}
-
-            {/* Only show help_text as a standalone note for non-text fields —
-                text fields use it as the placeholder above so they don't double. */}
-            {f.help_text && f.type !== "text" && (
-              <small className="help">{f.help_text}</small>
             )}
           </div>
         );

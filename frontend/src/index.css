@@ -434,28 +434,81 @@ input[type="checkbox"] {
 }
 .ticket-table tbody tr:hover { background: var(--ink-50); }
 
-/* ---------------- Dynamic form (requester side) ---------------- */
-.dyn-form, form { display: grid; gap: var(--space-4); }
-.form-field { display: grid; gap: var(--space-1); }
-.form-field label { font-weight: 500; font-size: 13px; color: var(--ink-700); }
+/* ---------------- Dynamic form (requester side) ----------------
+ *
+ * Google-Form-style: each field is its own card on a tinted surface
+ * with a generous inner padding and ample gap between cards. Inputs
+ * are bigger and feel "spacious" — the page reads as a sequence of
+ * questions, not a tight admin form. .form-field is the card root.
+ */
+.dyn-form, form { display: grid; gap: var(--space-6); }
+
+.form-field {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink-50);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-md);
+  transition: border-color 0.12s, background 0.12s;
+}
+.form-field:focus-within {
+  background: var(--ink-0);
+  border-color: var(--ink-300);
+}
+.form-field label {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+}
+/* Helper text sits BETWEEN the label and the input — Google's pattern.
+   Explanation comes before the input, not after. */
+.form-field .help {
+  color: var(--ink-500);
+  font-size: 13px;
+  margin: -2px 0 var(--space-1);
+}
+/* Field inputs: a touch taller for spaciousness; transparent so the
+   tinted .form-field background shows through, focusing the user on
+   the active card. */
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 10px 12px;
+  background: var(--ink-0);
+  border-color: var(--ink-200);
+}
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: var(--ink-900);
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
+}
+
+/* Bool field — checkbox wraps in the label so the whole row clicks. */
+.form-field .checkbox-inline { gap: 10px; font-size: 15px; font-weight: 500; color: var(--ink-900); cursor: pointer; }
+.form-field .checkbox-inline input[type="checkbox"] { width: 16px; height: 16px; }
+
+/* Global help (outside .form-field, e.g. plain forms) stays the muted
+   small text. */
 .help { color: var(--ink-500); font-size: 12.5px; margin-top: 2px; }
 
-/* Required marker is intentionally absent — most fields are required by
-   default. `OptionalMark` flags the exceptions instead. */
-.optional-mark { color: var(--ink-400); font-weight: 400; font-size: 12.5px; }
-.required { color: var(--red-600); margin-left: 2px; } /* legacy; kept for any callers still using it */
+/* Required marker is intentionally absent — most fields are required
+   by default. `OptionalMark` flags the exceptions instead. */
+.optional-mark { color: var(--ink-400); font-weight: 400; font-size: 13px; }
+.required { color: var(--red-600); margin-left: 2px; } /* legacy */
 
-/* Submit-button container — top-aligned divider so the action separates
-   visually from the field stack and the button doesn't run into the last
-   helper line. */
+/* Submit-button container — top divider so the action separates from
+   the last field and the button doesn't run into helper text. */
 .form-actions {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--ink-100);
+  margin-top: var(--space-2);
+  padding-top: var(--space-6);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
 }
+.form-actions .btn-primary { padding: 10px 20px; font-size: 14.5px; }
 
 /* ---------------- Cards / detail ---------------- */
 .ticket-grid {
