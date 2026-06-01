@@ -1,9 +1,13 @@
 // Admin → Team edit page.
-// Two sections: identity (name + description) and members (list + add + remove).
-// Slug isn't editable post-create — stages reference it.
+//
+// Mirrors the TicketTypeEdit layout:
+//   - Inline-editable name as H1, slug shown as immutable mono identifier
+//   - Description hidden behind a "Show advanced settings" disclosure
+//   - Members rendered as a one-line list with a quiet inline "+ Add member"
+//   - Delete team button lives at the top-right as btn-danger
 
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../api/client";
 import { useApi, useMutation } from "../../api/hooks";
 import type { AdminTeam, AdminTeamMembership } from "../../api/types";
@@ -16,7 +20,7 @@ export default function TeamEdit() {
   const path = `/api/admin/teams/${teamId}/`;
   const teamState = useApi<AdminTeam>(path, { orgSlug });
 
-  if (teamState.loading) return <p>Loading…</p>;
+  if (teamState.loading) return <p className="muted">Loading…</p>;
   if (teamState.error) {
     return <p className="error">Couldn't load team: {teamState.error.message}</p>;
   }
@@ -24,45 +28,43 @@ export default function TeamEdit() {
   const team = teamState.data;
 
   return (
-    <section className="page-admin-edit">
-      <header className="page-header">
-        <div>
-          <h1>{team.name}</h1>
-          <p className="muted">
-            <code>{team.slug}</code> · {team.member_count} member{team.member_count === 1 ? "" : "s"}
-            {" · "}
-            <Link to={`/o/${orgSlug}/admin/teams`}>← Back to teams</Link>
-          </p>
-        </div>
-        <DeleteButton
-          teamPath={path}
-          teamLabel={team.slug}
-          orgSlug={orgSlug}
-          onDeleted={() => navigate(`/o/${orgSlug}/admin/teams`)}
-        />
-      </header>
-
-      <IdentitySection team={team} orgSlug={orgSlug} onSaved={() => teamState.reload()} />
-      <MembersSection
+    <>
+      <IdentityHeader
         team={team}
         orgSlug={orgSlug}
-        onChanged={() => teamState.reload()}
+        onSaved={() => teamState.reload()}
+        onDeleted={() => navigate(`/o/${orgSlug}/admin/teams`)}
       />
-    </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h3>Members</h3>
+        </div>
+        <MembersList
+          team={team}
+          orgSlug={orgSlug}
+          onChanged={() => teamState.reload()}
+        />
+      </section>
+    </>
   );
 }
 
-function IdentitySection({
-  team,
-  orgSlug,
-  onSaved,
+// ---------------------------------------------------------------------------
+// Identity — inline-editable name + slug + "Show advanced" disclosure
+// ---------------------------------------------------------------------------
+function IdentityHeader({
+  team, orgSlug, onSaved, onDeleted,
 }: {
   team: AdminTeam;
   orgSlug: string;
   onSaved: () => void;
+  onDeleted: () => void;
 }) {
   const [name, setName] = useState(team.name);
   const [description, setDescription] = useState(team.description);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const dirty = name !== team.name || description !== team.description;
 
   const save = useMutation(async () => {
     await api(`/api/admin/teams/${team.id}/`, {
@@ -73,61 +75,104 @@ function IdentitySection({
     onSaved();
   });
 
+  const del = useMutation(async () => {
+    await api(`/api/admin/teams/${team.id}/`, { method: "DELETE", orgSlug });
+    onDeleted();
+  });
+
   return (
-    <section className="card">
-      <h3>Identity</h3>
-      <p className="muted">
-        Slug is fixed after creation — workflow stages reference it. To
-        rename a team, delete and recreate (orphans existing stage references).
-      </p>
-      <div className="form-field">
-        <label>Display name</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="form-field">
-        <label>Description</label>
-        <textarea
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="What does this team do? When does it get pulled into approvals?"
+    <header className="page-header">
+      <div style={{ display: "grid", gap: "var(--space-2)", flex: 1, minWidth: 0 }}>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{
+            fontSize: "30px",
+            fontWeight: 500,
+            padding: "2px 4px",
+            margin: "-2px -4px",
+            border: "1px solid transparent",
+            borderRadius: "var(--radius-md)",
+            letterSpacing: "-0.015em",
+            background: "transparent",
+            lineHeight: 1.2,
+          }}
         />
-      </div>
-      <div className="btn-row">
+        <div className="ticket-meta">
+          <code>{team.slug}</code>
+          <span className="sep-dot">·</span>
+          <span>{team.member_count} member{team.member_count === 1 ? "" : "s"}</span>
+        </div>
+
         <button
           type="button"
-          className="btn btn-primary"
-          disabled={save.loading || (!name.trim() && !description.trim())}
-          onClick={() => save.call(undefined)}
+          className="disclosure"
+          onClick={() => setShowAdvanced((v) => !v)}
+          style={{ marginTop: "var(--space-2)" }}
         >
-          {save.loading ? "Saving…" : "Save"}
+          {showAdvanced ? "▾" : "▸"} {showAdvanced ? "Hide" : "Show"} advanced settings
         </button>
-        {save.error && <span className="error">{save.error.message}</span>}
+        {showAdvanced && (
+          <div className="disclosure-panel">
+            <div className="form-field">
+              <label>Description</label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What does this team do? When does it get pulled into approvals?"
+              />
+            </div>
+            <p className="muted small" style={{ margin: 0 }}>
+              Slug is fixed after creation — workflow stages reference it. To
+              rename, delete and recreate (this orphans existing stage references).
+            </p>
+          </div>
+        )}
       </div>
-    </section>
+
+      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
+        <button
+          type="button"
+          className="btn-danger"
+          disabled={del.loading}
+          onClick={() => {
+            if (window.confirm(
+              `Delete team ${team.slug}? Stages that reference its slug will lose this approver group.`,
+            )) {
+              del.call(undefined);
+            }
+          }}
+        >
+          Delete
+        </button>
+        {dirty && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={save.loading}
+            onClick={() => save.call(undefined)}
+          >
+            {save.loading ? "Saving…" : "Save"}
+          </button>
+        )}
+      </div>
+    </header>
   );
 }
 
-function MembersSection({
-  team,
-  orgSlug,
-  onChanged,
+// ---------------------------------------------------------------------------
+// Members — one-line rows + inline add
+// ---------------------------------------------------------------------------
+function MembersList({
+  team, orgSlug, onChanged,
 }: {
   team: AdminTeam;
   orgSlug: string;
   onChanged: () => void;
 }) {
-  const [addEmail, setAddEmail] = useState("");
-
-  const add = useMutation(async (email: string) => {
-    await api(`/api/admin/teams/${team.id}/members/`, {
-      method: "POST",
-      orgSlug,
-      body: { user_email: email.trim() },
-    });
-    setAddEmail("");
-    onChanged();
-  });
+  const [adding, setAdding] = useState(false);
 
   const remove = useMutation(async (membership: AdminTeamMembership) => {
     await api(`/api/admin/teams/${team.id}/members/${membership.id}/`, {
@@ -138,112 +183,110 @@ function MembersSection({
   });
 
   return (
-    <section className="card">
-      <h3>Members</h3>
-      <p className="muted">
-        Users in this team can decide workflow stages whose <code>approvers</code>{" "}
-        list includes <code>{team.slug}</code>. Members must already be in this org.
-      </p>
+    <div className="list">
+      {team.memberships.length === 0 && !adding && (
+        <p className="muted">No members yet.</p>
+      )}
 
-      <div className="row-edit row-new">
-        <div className="row-inputs">
-          <input
-            type="email"
-            value={addEmail}
-            onChange={(e) => setAddEmail(e.target.value)}
-            placeholder="user@example.com"
-            style={{ flex: 1 }}
-          />
+      {team.memberships.map((m) => (
+        <div key={m.id} className="list-row">
+          <span className="list-row-summary">
+            <span className="mono">{m.user_email}</span>
+            {m.user_full_name && (
+              <>
+                <span className="sep-dot">·</span>
+                <span>{m.user_full_name}</span>
+              </>
+            )}
+            <span className="sep-dot">·</span>
+            <span className="list-row-meta">
+              added {new Date(m.created_at).toLocaleDateString()}
+            </span>
+          </span>
           <button
             type="button"
-            className="btn btn-primary"
-            disabled={!addEmail.trim() || add.loading}
-            onClick={() => add.call(addEmail)}
+            className="btn-danger"
+            disabled={remove.loading}
+            onClick={() => {
+              if (window.confirm(`Remove ${m.user_email} from ${team.slug}?`)) {
+                remove.call(m);
+              }
+            }}
           >
-            {add.loading ? "Adding…" : "+ Add member"}
+            Remove
           </button>
         </div>
-        {add.error && (
-          <p className="error">
-            {add.error.message}
-            {"body" in (add.error as object) &&
-              ": " + JSON.stringify((add.error as { body: unknown }).body)}
-          </p>
-        )}
-      </div>
+      ))}
 
-      {team.memberships.length === 0 ? (
-        <p className="muted">No members yet.</p>
+      {adding ? (
+        <AddMemberRow
+          team={team}
+          orgSlug={orgSlug}
+          onClose={() => setAdding(false)}
+          onAdded={() => { onChanged(); setAdding(false); }}
+        />
       ) : (
-        <table className="ticket-table">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Name</th>
-              <th>Added</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {team.memberships.map((m) => (
-              <tr key={m.id}>
-                <td><code>{m.user_email}</code></td>
-                <td>{m.user_full_name || <span className="muted">—</span>}</td>
-                <td>{new Date(m.created_at).toLocaleDateString()}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn-reject"
-                    disabled={remove.loading}
-                    onClick={() => {
-                      if (window.confirm(`Remove ${m.user_email} from ${team.slug}?`)) {
-                        remove.call(m);
-                      }
-                    }}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <button type="button" className="list-add" onClick={() => setAdding(true)}>
+          + Add member
+        </button>
       )}
-    </section>
+    </div>
   );
 }
 
-function DeleteButton({
-  teamPath,
-  teamLabel,
-  orgSlug,
-  onDeleted,
+function AddMemberRow({
+  team, orgSlug, onClose, onAdded,
 }: {
-  teamPath: string;
-  teamLabel: string;
+  team: AdminTeam;
   orgSlug: string;
-  onDeleted: () => void;
+  onClose: () => void;
+  onAdded: () => void;
 }) {
-  const del = useMutation(async () => {
-    await api(teamPath, { method: "DELETE", orgSlug });
-    onDeleted();
+  const [email, setEmail] = useState("");
+
+  const add = useMutation(async () => {
+    await api(`/api/admin/teams/${team.id}/members/`, {
+      method: "POST",
+      orgSlug,
+      body: { user_email: email.trim() },
+    });
+    onAdded();
   });
+
   return (
-    <button
-      type="button"
-      className="btn btn-reject"
-      disabled={del.loading}
-      onClick={() => {
-        if (
-          window.confirm(
-            `Delete team ${teamLabel}? Stages that reference its slug will lose this approver group.`,
-          )
-        ) {
-          del.call(undefined);
-        }
-      }}
-    >
-      Delete team
-    </button>
+    <div className="list-row-expanded">
+      <div className="form-field">
+        <label>Email of user to add</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="user@example.com"
+          autoFocus
+        />
+        <small className="help">
+          The user must already be a member of this org.
+        </small>
+      </div>
+
+      <div className="row-actions">
+        <button type="button" className="btn-quiet" onClick={onClose}>Cancel</button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!email.trim() || add.loading}
+          onClick={() => add.call(undefined)}
+        >
+          {add.loading ? "Adding…" : "Add member"}
+        </button>
+      </div>
+      {add.error && (
+        <p className="error">
+          {add.error.message}
+          {"body" in (add.error as object) &&
+            ": " + JSON.stringify((add.error as { body: unknown }).body)}
+        </p>
+      )}
+    </div>
   );
 }
