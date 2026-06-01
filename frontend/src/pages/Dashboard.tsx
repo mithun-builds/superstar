@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useApi } from "../api/hooks";
 import type { Paginated, Ticket, TicketStatus } from "../api/types";
 import { useOrgRequired } from "../contexts/OrgContext";
+import GetStarted from "../components/GetStarted";
 
 const STATUS_OPTIONS: ({ value: TicketStatus | "all"; label: string })[] = [
   { value: "all", label: "All" },
@@ -30,6 +31,8 @@ export default function Dashboard() {
 
   return (
     <section className="page-dashboard">
+      <GetStarted orgSlug={orgSlug} />
+
       <header className="page-header">
         <h1>Tickets</h1>
         <Link to={`/o/${orgSlug}/new`} className="btn btn-primary">+ New ticket</Link>
