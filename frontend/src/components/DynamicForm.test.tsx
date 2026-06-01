@@ -18,13 +18,20 @@ import userEvent from "@testing-library/user-event";
 import DynamicForm from "./DynamicForm";
 import type { PluginFieldSpec } from "../api/types";
 
-/** Build a minimal field spec with sensible defaults — keeps test bodies short. */
+/** Build a minimal field spec with sensible defaults — keeps test bodies short.
+ *
+ *  Default `required: true` matches the platform default (admins explicitly
+ *  opt OUT of required when defining a TicketTypeField). It also keeps the
+ *  visible label clean: with `required: false`, DynamicForm appends a
+ *  "(optional)" marker that getByLabelText() would otherwise have to know
+ *  about. Tests that exercise the optional-marker behaviour pass it
+ *  explicitly. */
 function field(overrides: Partial<PluginFieldSpec> & Pick<PluginFieldSpec, "name" | "type">): PluginFieldSpec {
   return {
     name: overrides.name,
     type: overrides.type,
     label: overrides.label ?? overrides.name,
-    required: overrides.required ?? false,
+    required: overrides.required ?? true,
     choices: overrides.choices ?? [],
     help_text: overrides.help_text ?? "",
     show_if: overrides.show_if ?? null,
@@ -64,12 +71,29 @@ describe("DynamicForm — rendering each field type", () => {
     const select = screen.getByLabelText("Role");
     expect(select.tagName).toBe("SELECT");
     const opts = within(select as HTMLSelectElement).getAllByRole("option");
-    expect(opts.map((o) => o.textContent)).toEqual(["— select —", "eng", "ops"]);
+    expect(opts.map((o) => o.textContent)).toEqual(["Select…", "eng", "ops"]);
   });
 
-  it("marks required fields with an asterisk", () => {
-    render(<DynamicForm fields={[field({ name: "title", type: "string", label: "Title", required: true })]} onSubmit={() => {}} />);
-    expect(screen.getByText("*")).toBeInTheDocument();
+  it("marks optional fields with a (optional) note; required fields stay unmarked", () => {
+    // We dropped the asterisk-on-required convention because most form fields
+    // ARE required — marking each with a screaming red asterisk is noise.
+    // Optional fields are the exception, so those get an inline note.
+    const { rerender } = render(
+      <DynamicForm
+        fields={[field({ name: "title", type: "string", label: "Title", required: true })]}
+        onSubmit={() => {}}
+      />,
+    );
+    expect(screen.queryByText(/optional/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("*")).not.toBeInTheDocument();
+
+    rerender(
+      <DynamicForm
+        fields={[field({ name: "notes", type: "string", label: "Notes", required: false })]}
+        onSubmit={() => {}}
+      />,
+    );
+    expect(screen.getByText(/optional/i)).toBeInTheDocument();
   });
 
   it("renders help_text under the field", () => {
@@ -120,7 +144,7 @@ describe("DynamicForm — submit payload shape", () => {
       <DynamicForm
         fields={[
           field({ name: "title", type: "string", label: "Title" }),
-          field({ name: "notes", type: "text", label: "Notes" }), // left blank, not required
+          field({ name: "notes", type: "text", label: "Notes", required: false }), // left blank, not required
         ]}
         onSubmit={onSubmit}
       />,
@@ -296,7 +320,7 @@ describe("DynamicForm — choices_if (cascading dropdowns)", () => {
     render(<DynamicForm fields={fields} onSubmit={() => {}} />);
     const sub = screen.getByLabelText("Sub category") as HTMLSelectElement;
     const opts = within(sub).getAllByRole("option").map((o) => o.textContent);
-    expect(opts).toEqual(["— select —", "fallback"]);
+    expect(opts).toEqual(["Select…", "fallback"]);
   });
 
   it("swaps to kitchen choices when room=kitchen", async () => {
@@ -305,7 +329,7 @@ describe("DynamicForm — choices_if (cascading dropdowns)", () => {
     await user.selectOptions(screen.getByLabelText("Room"), "kitchen");
     const sub = screen.getByLabelText("Sub category") as HTMLSelectElement;
     const opts = within(sub).getAllByRole("option").map((o) => o.textContent);
-    expect(opts).toEqual(["— select —", "base", "wall", "sink"]);
+    expect(opts).toEqual(["Select…", "base", "wall", "sink"]);
   });
 
   it("swaps to wardrobe choices when room changes again", async () => {
@@ -315,7 +339,7 @@ describe("DynamicForm — choices_if (cascading dropdowns)", () => {
     await user.selectOptions(screen.getByLabelText("Room"), "wardrobe");
     const sub = screen.getByLabelText("Sub category") as HTMLSelectElement;
     const opts = within(sub).getAllByRole("option").map((o) => o.textContent);
-    expect(opts).toEqual(["— select —", "base", "dresser"]);
+    expect(opts).toEqual(["Select…", "base", "dresser"]);
   });
 });
 

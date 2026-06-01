@@ -9,11 +9,17 @@
 //   enum    → <select>
 //
 // Conditional rendering (added in the conditional-fields feature):
-//   show_if   — field is hidden when its predicate doesn't match the
+//   show_if    — field is hidden when its predicate doesn't match the
 //                current values. Hidden values are NOT submitted, so the
 //                backend never sees stale state from a since-hidden field.
 //   choices_if — for enum fields, the first rule whose conditions match
 //                wins; its choices override the static `choices` list.
+//
+// Required-field convention: most fields ARE required. Marking each one
+// with a red asterisk yells; instead we add a quiet `(optional)` note
+// next to the labels that aren't required. The required-empty-string
+// pass-through behavior on submit is preserved so the existing tests
+// still hold (and so the backend can return the canonical error).
 
 import { useMemo, useState } from "react";
 import type { PluginFieldSpec } from "../api/types";
@@ -26,7 +32,12 @@ interface Props {
   submitting?: boolean;
 }
 
-export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", submitting = false }: Props) {
+export default function DynamicForm({
+  fields,
+  onSubmit,
+  submitLabel = "Submit",
+  submitting = false,
+}: Props) {
   const [values, setValues] = useState<Record<string, unknown>>(() => {
     const init: Record<string, unknown> = {};
     for (const f of fields) {
@@ -55,7 +66,7 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
       if (!visible[f.name]) continue; // strip hidden field values
       const v = values[f.name];
       if (v === "" || v === null || v === undefined) {
-        if (f.required) out[f.name] = v;  // let backend complain about required-missing
+        if (f.required) out[f.name] = v; // let backend complain about required-missing
         continue;
       }
       if (f.type === "int") {
@@ -72,13 +83,35 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
     <form onSubmit={handleSubmit} className="dyn-form">
       {fields.map((f) => {
         if (!visible[f.name]) return null;
-        const enumChoices = f.type === "enum" ? activeChoices(f, values) : [];
 
+        // Bool is special — the label wraps the checkbox so the click target
+        // is the whole row, not just the 14×14px box.
+        if (f.type === "bool") {
+          return (
+            <div key={f.name} className="form-field">
+              <label className="checkbox-inline" htmlFor={`f-${f.name}`}>
+                <input
+                  id={`f-${f.name}`}
+                  type="checkbox"
+                  checked={Boolean(values[f.name])}
+                  onChange={(e) => set(f.name, e.target.checked)}
+                />
+                <span>
+                  {f.label}
+                  {!f.required && <OptionalMark />}
+                </span>
+              </label>
+              {f.help_text && <small className="help">{f.help_text}</small>}
+            </div>
+          );
+        }
+
+        const enumChoices = f.type === "enum" ? activeChoices(f, values) : [];
         return (
           <div key={f.name} className="form-field">
             <label htmlFor={`f-${f.name}`}>
               {f.label}
-              {f.required && <span className="required">*</span>}
+              {!f.required && <OptionalMark />}
             </label>
 
             {f.type === "enum" ? (
@@ -88,7 +121,7 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
                 onChange={(e) => set(f.name, e.target.value)}
                 required={f.required}
               >
-                <option value="">— select —</option>
+                <option value="">Select…</option>
                 {enumChoices.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -100,13 +133,7 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
                 onChange={(e) => set(f.name, e.target.value)}
                 required={f.required}
                 rows={4}
-              />
-            ) : f.type === "bool" ? (
-              <input
-                id={`f-${f.name}`}
-                type="checkbox"
-                checked={Boolean(values[f.name])}
-                onChange={(e) => set(f.name, e.target.checked)}
+                placeholder={f.help_text || undefined}
               />
             ) : f.type === "int" ? (
               <input
@@ -126,13 +153,25 @@ export default function DynamicForm({ fields, onSubmit, submitLabel = "Submit", 
               />
             )}
 
-            {f.help_text && <small className="help">{f.help_text}</small>}
+            {/* Only show help_text as a standalone note for non-text fields —
+                text fields use it as the placeholder above so they don't double. */}
+            {f.help_text && f.type !== "text" && (
+              <small className="help">{f.help_text}</small>
+            )}
           </div>
         );
       })}
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
-        {submitting ? "Submitting…" : submitLabel}
-      </button>
+
+      <div className="form-actions">
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? "Submitting…" : submitLabel}
+        </button>
+      </div>
     </form>
   );
+}
+
+/** Quiet inline "(optional)" marker — replaces the red asterisk convention. */
+function OptionalMark() {
+  return <span className="optional-mark"> (optional)</span>;
 }

@@ -3,6 +3,16 @@
 //   2. User picks a plugin from the list (skip step if only one)
 //   3. Render DynamicForm from the picked plugin's fields
 //   4. POST /api/tickets/ + navigate to detail page
+//
+// Layout follows the minimal pattern used elsewhere:
+//   - One H1, page intent in plain language
+//   - Plugin picker only when there's more than one ticket type
+//   - Title field is OPTIONAL (defaults to "<display name> request") so
+//     it's parked behind a "Set custom title" disclosure — most users
+//     accept the default
+//   - The AI policy line is a single inline note below the ticket-type
+//     name, not a full paragraph
+//   - DynamicForm renders the fields; its own submit button sends.
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +32,7 @@ export default function NewTicket() {
 
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
+  const [editTitle, setEditTitle] = useState<boolean>(false);
 
   // Auto-pick when there's exactly one plugin.
   const picked = useMemo(() => {
@@ -48,33 +59,38 @@ export default function NewTicket() {
     },
   );
 
-  if (loading) return <p>Loading ticket types…</p>;
+  if (loading) return <p className="muted">Loading…</p>;
   if (error) return <p className="error">Couldn't fetch ticket types: {error.message}</p>;
   if (!plugins || plugins.length === 0) {
     return (
-      <p>
-        No ticket types are configured. Add a plugin YAML under{" "}
-        <code>SUPERSTAR_CONFIG_DIR/plugins/</code> and restart the server.
-      </p>
+      <>
+        <h1>New ticket</h1>
+        <p className="muted">
+          No ticket types are configured yet. Ask an org admin to add one in{" "}
+          Admin → Ticket types.
+        </p>
+      </>
     );
   }
 
   return (
-    <section className="page-new-ticket">
-      <h1>New ticket</h1>
+    <>
+      <header className="page-header">
+        <h1>New ticket</h1>
+      </header>
 
       {plugins.length > 1 && (
-        <div className="form-field">
+        <div className="form-field" style={{ marginBottom: "var(--space-8)" }}>
           <label htmlFor="picker">Ticket type</label>
           <select
             id="picker"
             value={pickedId ?? ""}
             onChange={(e) => setPickedId(e.target.value || null)}
           >
-            <option value="">— pick one —</option>
+            <option value="">Select…</option>
             {plugins.map((p) => (
               <option key={p.identifier} value={p.identifier}>
-                {p.display_name} ({p.identifier})
+                {p.display_name}
               </option>
             ))}
           </select>
@@ -82,27 +98,47 @@ export default function NewTicket() {
       )}
 
       {picked && (
-        <>
-          <div className="form-field">
-            <label htmlFor="title">Title</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={`${picked.display_name} request`}
-            />
-            <small className="help">Optional — defaults to "{picked.display_name} request".</small>
+        <section className="section" style={{ marginTop: 0 }}>
+          <div className="section-head">
+            <h3>{picked.display_name}</h3>
+            {picked.ai_enabled && (
+              <span className="status status-decided" title="Decisioning runs on submit.">
+                {picked.shadow_mode ? "AI shadow" : "AI on"}
+              </span>
+            )}
           </div>
 
-          <hr />
-          <h2>{picked.display_name}</h2>
-          {picked.ai_enabled && (
-            <p className="muted">
-              This ticket type runs AI decisioning
-              {picked.shadow_mode ? " (shadow mode — decisions logged, not applied)" : ""}.
-            </p>
+          {/* Title — hidden by default. Surfaced on demand for the few users
+              who want to override "<plugin> request". */}
+          {!editTitle && (
+            <button
+              type="button"
+              className="disclosure"
+              onClick={() => setEditTitle(true)}
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              ▸ Set a custom title{" "}
+              <span className="muted small">
+                (defaults to "{picked.display_name} request")
+              </span>
+            </button>
           )}
+          {editTitle && (
+            <div className="form-field" style={{ marginBottom: "var(--space-4)" }}>
+              <label htmlFor="title">
+                Title<span className="optional-mark"> (optional)</span>
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={`${picked.display_name} request`}
+                autoFocus
+              />
+            </div>
+          )}
+
           <DynamicForm
             fields={picked.fields}
             onSubmit={async (payload) => {
@@ -113,15 +149,16 @@ export default function NewTicket() {
             submitting={submit.loading}
             submitLabel="Submit ticket"
           />
+
           {submit.error && (
-            <pre className="error-block">
+            <pre className="error-block" style={{ marginTop: "var(--space-4)" }}>
               {submit.error instanceof Error ? submit.error.message : String(submit.error)}
               {"body" in (submit.error as object) &&
                 "\n" + JSON.stringify((submit.error as { body: unknown }).body, null, 2)}
             </pre>
           )}
-        </>
+        </section>
       )}
-    </section>
+    </>
   );
 }
