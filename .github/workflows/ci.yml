@@ -157,10 +157,11 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          # Node 22 LTS — matches what the lockfile was generated with.
-          # Node 20 reads npm 10's lockfile differently and complains
-          # about missing transitive entries that v22+ resolves fine.
-          node-version: "22"
+          # Node 24 — ships npm 11, which matches the local toolchain
+          # the lockfile was generated with. npm 10 (Node 20/22) reads
+          # the optionalDependencies section differently and rejects
+          # the install with "Missing: @esbuild/<platform>@0.28.0".
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
