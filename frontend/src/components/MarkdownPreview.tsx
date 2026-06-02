@@ -17,8 +17,7 @@ export default function MarkdownPreview({ source }: { source: string }) {
   if (!source?.trim()) {
     return <p className="muted">(empty — type something on the left to preview it)</p>;
   }
-  // Disabling react's noDangerouslySetInnerHTML lint for this single use —
-  // the sanitizer above is the contract.
-  // eslint-disable-next-line react/no-danger
+  // dangerouslySetInnerHTML is safe here — DOMPurify above is the contract.
+  // If we ever pull in eslint-plugin-react, re-add the disable directive.
   return <div className="md-preview" dangerouslySetInnerHTML={{ __html: html }} />;
 }

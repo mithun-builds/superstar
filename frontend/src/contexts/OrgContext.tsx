@@ -16,10 +16,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   return <OrgContext.Provider value={{ slug }}>{children}</OrgContext.Provider>;
 }
 
+// React-refresh wants only-components in a file. The OrgProvider above IS
+// a component, and these hooks are tightly coupled to it — splitting them
+// into a separate file would just create import noise. Accepted as is.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOrg(): string | null {
   return useContext(OrgContext).slug;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOrgRequired(): string {
   const slug = useOrg();
   if (!slug) {

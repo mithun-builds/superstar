@@ -8,7 +8,7 @@
 - [x] LLMClient interface + Ollama / vLLM / noop backends
 - [x] Apps scaffolded with real models (tickets, kb, decisioning, audit, accounts)
 - [x] Frontend skeleton (React + Vite + TS)
-- [x] CI workflow (GitHub Actions)
+- [x] CI workflow (GitHub Actions — backend pytest with Postgres+pgvector service container, frontend vitest + tsc + lint + build, eval-harness smoke with `LLM_PROVIDER=noop`)
 - [x] Initial migrations + RLS migrations
 
 ## Phase 1 — core ticketing ✅
