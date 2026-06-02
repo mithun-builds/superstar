@@ -480,8 +480,86 @@ input[type="checkbox"] {
   .get-started-step .btn { grid-column: 1 / -1; margin-top: var(--space-2); }
 }
 
-/* ---------------- Org picker ---------------- */
-.org-list { list-style: none; padding: 0; display: grid; gap: var(--space-2); margin: 0; }
+/* ---------------- Org picker (homepage) ----------------
+ *
+ * Tiles, not table rows. Each tile is a generous click target with a
+ * monogram avatar, big workspace name, and a right-pointing arrow that
+ * brightens on hover. Same tinted-card pattern as the form fields so
+ * the whole post-sign-in surface feels like one continuous design.
+ */
+.org-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.org-list li { display: block; }
+
+.org-tile {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink-50);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-md);
+  color: var(--ink-900);
+  transition: background 0.12s, border-color 0.12s;
+}
+.org-tile:hover {
+  background: var(--ink-0);
+  border-color: var(--ink-300);
+  text-decoration: none;
+}
+.org-tile-avatar {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--ink-900);
+  color: var(--ink-0);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.org-tile-body { display: grid; gap: 2px; min-width: 0; }
+.org-tile-name {
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+}
+.org-tile-meta {
+  display: flex; align-items: center; gap: var(--space-2);
+  color: var(--ink-500); font-size: 13px;
+}
+.org-tile-meta code {
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.org-tile-arrow {
+  font-size: 18px;
+  color: var(--ink-400);
+  transition: color 0.12s, transform 0.12s;
+}
+.org-tile:hover .org-tile-arrow {
+  color: var(--ink-900);
+  transform: translateX(2px);
+}
+
+/* Empty state used by both the no-memberships branch and the sign-in
+   prompt. Centered prose + the relevant CTA / command. */
+.empty-state {
+  margin-top: var(--space-8);
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Legacy classes kept so any non-Home callers still render — Home no
+   longer uses them, but `.org-card` is referenced in docs/screenshots. */
 .org-card {
   display: grid;
   grid-template-columns: 1fr auto;
