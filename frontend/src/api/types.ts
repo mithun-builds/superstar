@@ -220,3 +220,13 @@ export interface AdminTeam {
   created_at: string;
   updated_at: string;
 }
+
+// Platform-level (superuser-only) — /api/platform/orgs/
+export interface PlatformOrg {
+  id: string;
+  slug: string;
+  name: string;
+  created_at: string;
+  member_count: number;
+  owner_emails: string[];
+}

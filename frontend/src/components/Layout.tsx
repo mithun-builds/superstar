@@ -62,6 +62,16 @@ export default function Layout() {
             >
               Teams
             </Link>
+            {/* Platform tab — only superusers see it. The page itself
+                gates server-side too; this just keeps the chrome clean. */}
+            {me?.is_superuser && (
+              <Link
+                to={`/o/${slug}/admin/platform/orgs`}
+                className={location.pathname.includes("/admin/platform") ? "active" : ""}
+              >
+                Platform
+              </Link>
+            )}
           </div>
         </nav>
       )}

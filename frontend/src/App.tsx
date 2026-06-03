@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import NewTicket from "./pages/NewTicket";
 import TicketDetail from "./pages/TicketDetail";
+import PlatformOrgList from "./pages/admin/PlatformOrgList";
 import RuleEdit from "./pages/admin/RuleEdit";
 import RuleList from "./pages/admin/RuleList";
 import TeamEdit from "./pages/admin/TeamEdit";
@@ -37,6 +38,9 @@ export default function App() {
         />
         <Route path="/o/:orgSlug/admin/teams" element={<TeamList />} />
         <Route path="/o/:orgSlug/admin/teams/:teamId" element={<TeamEdit />} />
+        {/* Platform — superuser-only (server-side gate). The page hides
+            its own UI for non-superusers, so the route is safe to mount. */}
+        <Route path="/o/:orgSlug/admin/platform/orgs" element={<PlatformOrgList />} />
       </Route>
     </Routes>
   );

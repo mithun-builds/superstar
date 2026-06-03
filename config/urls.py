@@ -18,5 +18,7 @@ urlpatterns = [
     path("api/admin/", include("apps.tickets.admin_urls", namespace="tickets_admin")),
     path("api/admin/", include("apps.kb.urls", namespace="kb_admin")),
     path("api/admin/", include("apps.tenants.admin_urls", namespace="tenants_admin")),
+    # Platform — org-agnostic, superuser-only. Used by the New-org UI.
+    path("api/platform/", include("apps.tenants.platform_urls", namespace="tenants_platform")),
     path("o/<slug:org_slug>/", include("apps.tenants.urls", namespace="tenants")),
 ]
