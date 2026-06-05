@@ -64,7 +64,7 @@ export default function NewTicket() {
   if (!plugins || plugins.length === 0) {
     return (
       <>
-        <h1>New ticket</h1>
+        <h1 className="display-heading">New ticket</h1>
         <p className="muted">
           No ticket types are configured yet. Ask an org admin to add one in{" "}
           Admin → Ticket types.
@@ -76,7 +76,7 @@ export default function NewTicket() {
   return (
     <>
       <header className="page-header">
-        <h1>New ticket</h1>
+        <h1 className="display-heading">New ticket</h1>
       </header>
 
       {plugins.length > 1 && (

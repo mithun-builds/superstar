@@ -1,13 +1,22 @@
-/* SuperStar — minimal stylesheet.
+/* SuperStar — design system.
  *
- * Rules:
- *   1. Helvetica. One typeface.
- *   2. A single 740px reading container. Wider only when it earns it (tables).
- *   3. Whitespace before borders. If you reach for a divider, try `--space-6` first.
- *   4. One accent — brand red — used SPARINGLY (links, the one primary CTA per page).
- *   5. Hide what defaults. Only show what the user needs to change.
+ * Patterns this stylesheet provides:
+ *   - .app-shell        outer-framed canvas (rounded white card on tinted bg)
+ *   - .display-heading  watermark-style page title (huge, pale, light-weight)
+ *   - .metric-hero      big numeral + delta pill (dashboard hero metric)
+ *   - .delta-pill       green/red trend pill for metrics
+ *   - .score-badge      sticker-style score badge with wavy edge
+ *   - .bento            mixed-size card grid
+ *   - .accent-card      bright-fill card for emphasis (uses brand red)
+ *   - .list-row         one-line list-item, click to expand/navigate
+ *   - .form-field       Google-form-style tinted question card
  *
- * Token names match docs/brand.md.
+ * Three responsive tiers:
+ *   - default      desktop (>= 1024px)
+ *   - tablet       <= 1024px (sub-nav wraps, bento collapses to 2-col)
+ *   - phone        <= 640px  (everything stacks, frame loses radius)
+ *
+ * Tokens live below. Components reference tokens only — never hex literals.
  */
 
 :root {
@@ -52,14 +61,33 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  /* Radii — bigger than before so cards feel "soft" and modern.
+     Smaller controls (chips, pills, status badges) still use sm/md. */
+  --radius-sm: 6px;     /* chips, status pills */
+  --radius-md: 10px;    /* buttons, inputs, list rows */
+  --radius-lg: 16px;    /* card surfaces */
+  --radius-xl: 24px;    /* the outer frame */
+  --radius-2xl: 32px;   /* hero / accent cards */
 
-  /* Container — narrow reading width; tables can opt up to --max-wide. */
-  --max-content: 740px;
-  --max-wide: 1040px;
+  /* Shadows — three tiers. The frame uses heavy, surfaces use light. */
+  --shadow-frame:
+    0 1px 2px rgba(15, 15, 17, 0.04),
+    0 8px 24px -8px rgba(15, 15, 17, 0.08),
+    0 32px 64px -24px rgba(15, 15, 17, 0.06);
+  --shadow-surface:
+    0 1px 2px rgba(15, 15, 17, 0.03),
+    0 4px 12px -4px rgba(15, 15, 17, 0.04);
+  --shadow-pop:
+    0 6px 24px -8px rgba(215, 36, 43, 0.18); /* used on accent CTAs */
+
+  /* Page backdrop — the tinted bg the outer frame sits on. */
+  --bg-page: #F2F3F5;
+
+  /* Containers */
+  --max-content: 760px;    /* form / reading pages */
+  --max-wide: 1180px;      /* dashboard, tables, bento */
+  --max-frame: 1280px;     /* outer frame max */
+  --frame-pad: 28px;       /* outer frame inner padding */
 
   color-scheme: light;
 }
@@ -72,11 +100,12 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.55;
-  background: var(--ink-0);
+  background: var(--bg-page);
   color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+#root { min-height: 100vh; }
 h1 {
   font-size: 30px;
   line-height: 1.2;
@@ -149,21 +178,35 @@ input[type="checkbox"] {
   margin: 0; cursor: pointer;
 }
 
-/* ---------------- Layout ---------------- */
-.app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+/* ---------------- Layout — the outer frame ----------------
+ *
+ * The app sits inside a soft-shadowed rounded white "card" on a tinted
+ * page background. Reads like a modern fintech / dashboard product.
+ * On phones the radius drops to 0 so the card fills the screen.
+ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  background: var(--ink-0);
+  min-height: calc(100vh - 2 * var(--frame-pad));
+  max-width: var(--max-frame);
+  width: 100%;
+  margin: var(--frame-pad) auto;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-frame);
+  overflow: hidden; /* keeps inner borders inside the rounded corners */
+}
 
 .app-header {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-4) var(--space-8);
   border-bottom: 1px solid var(--ink-100);
 }
 .app-header-inner {
   display: flex; align-items: center; gap: var(--space-3);
-  max-width: var(--max-wide);
   width: 100%;
-  margin: 0 auto;
 }
 .brand {
   display: inline-flex;
@@ -214,7 +257,7 @@ input[type="checkbox"] {
 .badge.shadow { background: var(--warn-bg); color: var(--warn-fg); }
 
 .app-main {
-  padding: var(--space-12) var(--space-6) var(--space-16);
+  padding: var(--space-8) var(--space-8) var(--space-12);
   max-width: var(--max-content);
   width: 100%;
   margin: 0 auto;
@@ -1110,13 +1153,206 @@ input[type="checkbox"] {
 }
 .small { font-size: 12.5px; }
 
-/* ---------------- Responsive ---------------- */
-@media (max-width: 800px) { .md-split { grid-template-columns: 1fr; } }
-@media (max-width: 720px) {
+/* ---------------- Page templates ---------------- */
+
+/* Watermark page heading — huge, pale, light-weight. Pair with a small
+   .page-subhead label above it for context (e.g. "Dashboard", "Admin"). */
+.display-heading {
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink-300);
+  margin: 0 0 var(--space-6);
+}
+.page-subhead {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-700);
+  margin: 0 0 var(--space-2);
+}
+
+/* Hero metric — huge number with decimals stepped down, plus delta pills.
+   Drop into a .metric-card to wrap with surface styling. */
+.metric-hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-2) 0;
+}
+.metric-hero-value {
+  font-size: clamp(36px, 5vw, 52px);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--ink-950);
+  font-variant-numeric: tabular-nums;
+}
+.metric-hero-value .decimals {
+  font-size: 0.6em;
+  color: var(--ink-500);
+  font-weight: 500;
+}
+.metric-label {
+  font-size: 13px;
+  color: var(--ink-500);
+  margin-bottom: 2px;
+}
+
+/* Delta pills — green for up, red for down. Used next to metric heroes. */
+.delta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.delta-pill.up   { background: var(--ok-bg);  color: var(--ok-fg); }
+.delta-pill.down { background: var(--err-bg); color: var(--err-fg); }
+.delta-pill::before { font-size: 11px; line-height: 1; }
+.delta-pill.up::before   { content: "▲"; }
+.delta-pill.down::before { content: "▼"; }
+
+/* Sticker score badge — wavy edge via mask-image, gold accent. */
+.score-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 64px; height: 64px;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: var(--ink-950);
+  background: var(--gold-500);
+  border-radius: 50%;
+  /* Wavy edge — a radial-gradient-cut SVG mask gives the sticker look. */
+  -webkit-mask-image:
+    radial-gradient(circle at 50% 50%, black 56%, transparent 57%);
+  mask-image:
+    radial-gradient(circle at 50% 50%, black 56%, transparent 57%);
+  /* Stack the actual content via padding so the mask doesn't clip text. */
+}
+.score-badge-row {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+}
+.score-badge-label { font-size: 13px; color: var(--ink-500); }
+
+/* Simpler sticker variant for inline use — no wavy mask, just the disc. */
+.score-disc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px; height: 56px;
+  padding: 0 var(--space-3);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink-950);
+  background: var(--gold-500);
+  border-radius: 999px;
+  letter-spacing: -0.01em;
+}
+
+/* Bento grid — flexible mixed-size cards. Default 3 cols; spans via
+   --span on the child. */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.bento > * {
+  grid-column: span var(--span, 1);
+  grid-row: span var(--row-span, 1);
+}
+.bento-card {
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink-50);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: var(--space-2);
+  min-height: 0;
+}
+.bento-card.accent {
+  background: var(--red-600);
+  color: var(--ink-0);
+  border-color: var(--red-600);
+}
+.bento-card.accent .metric-hero-value,
+.bento-card.accent .metric-label { color: var(--ink-0); }
+.bento-card.accent .metric-hero-value .decimals { color: rgba(255,255,255,0.65); }
+.bento-card.gold {
+  background: var(--gold-500);
+  color: var(--ink-950);
+  border-color: var(--gold-500);
+}
+
+/* ---------------- Responsive — three tiers ---------------- */
+/* Tablet — <=1024 px. Sub-nav can wrap; bento collapses to 2 columns;
+   landing hero stays 2-col but tighter. */
+@media (max-width: 1024px) {
+  :root { --frame-pad: 16px; }
+  .app-shell { border-radius: var(--radius-lg); }
+  .app-header,
+  .admin-subnav,
+  .app-main { padding-inline: var(--space-6); }
+  .bento { grid-template-columns: repeat(2, 1fr); }
+  .md-split { grid-template-columns: 1fr; }
+}
+
+/* Phone — <=640 px. The frame loses its radius (fills the screen),
+   nav wraps, every multi-col layout collapses to one, container padding
+   tightens. Touch targets stay >=44 px. */
+@media (max-width: 640px) {
+  :root { --frame-pad: 0px; }
+  .app-shell { border-radius: 0; box-shadow: none; }
+  .app-header {
+    padding: var(--space-3) var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .app-header-inner { flex-wrap: wrap; gap: var(--space-2); }
+  .header-nav {
+    margin-left: 0;
+    gap: var(--space-4);
+    width: 100%;
+    order: 3;            /* nav drops below brand+org on a new row */
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--ink-100);
+  }
+  .header-nav a { padding: 8px 0; min-height: 44px; display: inline-flex; align-items: center; }
+  .header-spacer { display: none; }
+  .user { font-size: 12.5px; margin-left: auto; }
+  .admin-subnav-inner { gap: var(--space-3); overflow-x: auto; }
+  .admin-subnav-inner a { white-space: nowrap; }
+  .app-main { padding: var(--space-6) var(--space-4) var(--space-12); }
+
+  .bento { grid-template-columns: 1fr; }
   .ticket-grid { grid-template-columns: 1fr; }
   .grid-two { grid-template-columns: 1fr; }
   .org-card { grid-template-columns: 1fr; gap: var(--space-1); }
   .cond-row, .cond-row:has(.cond-value-half) { grid-template-columns: 1fr; }
-  .app-main { padding: var(--space-6) var(--space-4) var(--space-12); }
-  .app-header { padding: var(--space-3) var(--space-4); }
+
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .page-header > div + div { width: 100%; }  /* button row goes full-width */
+  .row-actions { flex-wrap: wrap; }
+
+  /* Tap target floor — buttons + inputs at 44 px minimum on phone. */
+  .btn, .btn-primary, .btn-accent, .btn-approve, .btn-reject {
+    min-height: 44px;
+    padding-inline: 16px;
+  }
+  input, select, textarea { font-size: 16px; }  /* iOS no-zoom on focus */
+
+  /* The landing tagline gradient stays but the hero shrinks. */
+  .landing-title { font-size: clamp(36px, 9vw, 48px); }
+
+  /* Tables overflow horizontally instead of breaking layout. */
+  .ticket-table { display: block; overflow-x: auto; white-space: nowrap; }
 }

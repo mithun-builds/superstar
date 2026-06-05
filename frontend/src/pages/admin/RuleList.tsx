@@ -28,7 +28,7 @@ export default function RuleList() {
     <>
       <header className="page-header">
         <div style={{ display: "grid", gap: "var(--space-2)", flex: 1, minWidth: 0 }}>
-          <h1>KB rules</h1>
+          <h1 className="display-heading">KB rules</h1>
           <p className="ticket-meta" style={{ margin: 0 }}>
             {tt.data ? (
               <>

@@ -38,7 +38,7 @@ export default function PlatformOrgList() {
   return (
     <>
       <header className="page-header">
-        <h1>Orgs</h1>
+        <h1 className="display-heading">Orgs</h1>
         {!adding && (
           <button
             type="button"

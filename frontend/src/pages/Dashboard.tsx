@@ -34,7 +34,7 @@ export default function Dashboard() {
       <GetStarted orgSlug={orgSlug} />
 
       <header className="page-header">
-        <h1>Tickets</h1>
+        <h1 className="display-heading">Tickets</h1>
         <Link to={`/o/${orgSlug}/new`} className="btn btn-primary">+ New ticket</Link>
       </header>
 

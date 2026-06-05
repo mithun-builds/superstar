@@ -27,7 +27,7 @@ export default function TeamList() {
   return (
     <>
       <header className="page-header">
-        <h1>Teams</h1>
+        <h1 className="display-heading">Teams</h1>
         {!adding && (
           <button
             type="button"

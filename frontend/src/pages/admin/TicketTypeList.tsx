@@ -35,7 +35,7 @@ export default function TicketTypeList() {
   return (
     <section className="page-admin-list">
       <header className="page-header">
-        <h1>Ticket types</h1>
+        <h1 className="display-heading">Ticket types</h1>
         <button
           type="button"
           className="btn btn-primary"
