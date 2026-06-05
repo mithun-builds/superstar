@@ -35,8 +35,11 @@
   --err-bg:   #FCE6E7;  --err-fg:   #B81C22;
   --info-bg:  #E6F0FA;  --info-fg:  #1A56C0;
 
-  /* Type — Helvetica everywhere */
-  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Type — Inter Variable (self-hosted via @fontsource), with system
+     fallbacks if the font file fails to load. Inter reads cleanly at
+     14px body size, has a wide weight range, and renders consistently
+     across Chrome/Safari/Firefox. */
+  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Spacing — 4px base */
@@ -393,6 +396,118 @@ input[type="checkbox"] {
 .status-escalate   { background: var(--warn-bg); color: var(--warn-fg); }
 .status-pending    { background: var(--ink-100); color: var(--ink-500); }
 .status-error      { background: var(--err-bg);  color: var(--err-fg); }
+
+/* ---------------- Branded landing (unauthenticated home) ---------------- */
+.landing {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--space-12);
+  align-items: center;
+  min-height: calc(100vh - 200px);
+  padding: var(--space-8) 0;
+}
+.landing-hero {
+  display: grid;
+  gap: var(--space-4);
+}
+.landing-logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-2);
+}
+.landing-title {
+  font-size: 56px;
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink-950);
+}
+.landing-tagline {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  margin: 0;
+  /* Subtle red→gold gradient on the headline, kept low-contrast so the
+     page still reads as restrained. */
+  background: linear-gradient(90deg, var(--red-600) 0%, #C9591A 60%, var(--gold-500) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  width: max-content;
+  max-width: 100%;
+}
+.landing-sub {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-700);
+  margin: 0;
+  max-width: 44ch;
+}
+
+/* Sign-in card on the landing right column. Gold-tinted border glow
+   suggests the brand without screaming. */
+.signin-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  background: var(--ink-0);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 1px 2px rgba(15, 15, 17, 0.04),
+    0 10px 30px -10px rgba(15, 15, 17, 0.06),
+    0 0 0 1px rgba(245, 197, 24, 0.08);
+  max-width: 380px;
+  width: 100%;
+  margin-left: auto;
+}
+.signin-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-2);
+  color: var(--ink-950);
+}
+.signin-card .form-field {
+  /* The form-field cards used elsewhere are too tinted for the landing —
+     here the card itself IS the tint, so each field is flat. */
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.signin-card .form-field input { background: var(--ink-50); }
+.signin-card .form-field input:focus {
+  background: var(--ink-0);
+  border-color: var(--red-600);
+  box-shadow: 0 0 0 3px var(--red-50);
+}
+.signin-submit {
+  width: 100%;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: var(--space-2);
+}
+.signin-note { font-size: 12.5px; margin: 0; }
+
+@media (max-width: 900px) {
+  .landing {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    text-align: center;
+  }
+  .landing-tagline { margin-inline: auto; }
+  .landing-sub { margin-inline: auto; }
+  .signin-card { margin: 0 auto; }
+}
+
+/* The landing needs a wider container than the default reading width so
+   the two-column hero has room to breathe. Override at the page-level
+   selector so the rest of /-routed pages keep the standard container. */
+.app-main:has(.landing) { max-width: var(--max-wide); }
 
 /* ---------------- Get started checklist (onboarding) ---------------- */
 .get-started {
