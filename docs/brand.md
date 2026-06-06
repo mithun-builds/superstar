@@ -119,17 +119,30 @@ for an "unhealthy" state.
 
 ## Typography
 
-**Helvetica** is the typeface. One family, three weights.
+**Inter Variable** is the typeface. One family, three weights.
 
 ```
-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-family: "Inter Variable", "Inter", "Helvetica Neue", Helvetica, sans-serif;
 font-family-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 ```
 
-We picked Helvetica deliberately:
-- It's installed on every Mac, iOS device, and modern Windows install via fallback. Zero network cost, zero font-flash.
-- It reads competently at every size from 11 px to 64 px.
-- It's the typeface of mature software — readers trust it without thinking.
+We picked Inter deliberately:
+- It's the standard "modern SaaS" sans — what GitHub, Figma, Notion, Linear all use. Readers don't have to think about the typeface; they just read.
+- Variable-font means one file covers every weight from 100–900 plus italics. No multi-file weight juggling, ~150 kB total over the wire.
+- Self-hosted via `@fontsource-variable/inter` — no Google Fonts CDN request, no privacy / EU-cookie concerns.
+- Pixel-grid optimised down to 11 px. The reason it reads so cleanly at small sizes in dashboards.
+- Helvetica stays in the fallback chain so the font doesn't go missing if the CSS shim doesn't load (slow network, blocked extension, etc.).
+
+### Body tweaks
+
+Inter reads a hair wide at body size, and its default `a` and `l` shapes
+have a touch of personality that doesn't match our "honest / restrained"
+voice. Two micro-adjustments on `body`:
+
+```css
+letter-spacing: -0.005em;                    /* tighten body */
+font-feature-settings: "cv11", "ss03";       /* calmer a + l */
+```
 
 ### Weights
 
@@ -137,8 +150,9 @@ We picked Helvetica deliberately:
 - **500 — medium** — labels, navigation, secondary CTAs
 - **700 — bold** — display headings, primary CTAs, names ("Hello, **Mithun**")
 
-We don't use 600 (semibold) — it's a Helvetica weight that doesn't exist in
-the standard family on all platforms and fakes itself unevenly.
+Inter does have a real semibold (600), but we still avoid it: the
+500 → 700 jump is intentional. Three weights are enough to express
+every hierarchy we need.
 
 ### Scale
 

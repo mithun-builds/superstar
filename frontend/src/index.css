@@ -40,7 +40,10 @@
   --info-bg:  #E6F0FA;  --info-fg:  #1A56C0;
 
   /* ── Type ──────────────────────────────────────────────── */
-  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Inter Variable — self-hosted via @fontsource. The 100–900 weight
+     range covers everything; we use 400/500/700 only. Falls back to
+     Helvetica → system sans if the font file fails to load. */
+  --font-sans: "Inter Variable", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ── Spacing (4 px base) ──────────────────────────────── */
@@ -90,10 +93,12 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  letter-spacing: -0.005em;     /* Inter reads a hair wide; tighten */
   background: var(--bg-page);
   color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss03";  /* Inter's calmer 'a' + 'l' */
 }
 #root { min-height: 100vh; }
 
