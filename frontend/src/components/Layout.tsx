@@ -32,7 +32,7 @@ export default function Layout() {
     location.pathname === "/" && !meLoading && (meError !== null || me === null);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${onUnauthLanding ? "unframed" : ""}`}>
       {!onUnauthLanding && (
         <header className="app-header">
           <div className="app-header-inner">

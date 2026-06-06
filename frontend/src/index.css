@@ -179,6 +179,17 @@ input[type="checkbox"] {
   box-shadow: var(--shadow-frame);
   overflow: hidden;
 }
+/* The unauthenticated landing renders without the outer frame — the
+   sign-in card is itself the focal surface, and wrapping that in another
+   white card just leaves an awkward empty band at the top of the page. */
+.app-shell.unframed {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0 auto;
+  min-height: 100vh;
+  overflow: visible;
+}
 .app-header {
   display: flex;
   align-items: center;
@@ -693,8 +704,10 @@ input[type="checkbox"] {
   justify-content: center;
   max-width: 920px;
   margin: 0 auto;
-  min-height: calc(100vh - 4 * var(--frame-pad));
-  padding: var(--space-8) 0;
+  /* Sit slightly above viewport-center on tall screens — visually
+     calmer than perfect vertical centering. */
+  min-height: calc(100vh - var(--space-16));
+  padding-block: var(--space-12);
 }
 .landing-hero { display: grid; gap: var(--space-4); }
 .landing-logo { width: 48px; height: 48px; margin-bottom: var(--space-1); }
