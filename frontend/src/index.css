@@ -767,19 +767,16 @@ input[type="checkbox"] {
    hero of the page, so it stays small. Inputs use placeholders as
    their labels (the visible "Email" / "Password" labels live inside
    the field) which lets the card shed two ~18 px label rows.
-   `align-content: center` matters: the parent .landing column has
-   `align-items: stretch` (equal-height columns by design), so the
-   card itself is taller than its natural content. Without this, the
-   grid's default `stretch` distributes the slack across rows and
-   each input + the button balloons. Centring keeps every row at its
-   intrinsic height and parks the form mid-column. */
+   `align-self: center` is the trick: the parent .landing grid uses
+   align-items: stretch so the hero column can fill vertically, but
+   the sign-in card opts out and stays at content height, vertically
+   centred in its grid cell. This stops the card from looking like an
+   empty box with the form floating in the middle on desktop — and on
+   mobile (single column) it just behaves like a normal block. */
 .signin-card {
   display: grid; gap: var(--space-2);
-  align-content: center;
-  /* No vertical padding — the card is taller than the form (equal-
-     height columns), so align-content: center provides the breathing
-     room. Padding on top/bottom would just add to that slack. */
-  padding: 0 var(--space-3);
+  align-self: center;
+  padding: var(--space-3);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-lg);
