@@ -62,8 +62,10 @@ function Landing({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <section className="landing">
       <div className="landing-hero">
-        <img src="/logo.svg" alt="" className="landing-logo" aria-hidden="true" />
-        <h1 className="landing-title">SuperStar</h1>
+        <div className="landing-brand">
+          <img src="/logo.svg" alt="" className="landing-logo" aria-hidden="true" />
+          <h1 className="landing-title">SuperStar</h1>
+        </div>
         <p className="landing-tagline">
           AI-native ticketing with grounded decisions.
         </p>
