@@ -766,9 +766,16 @@ input[type="checkbox"] {
 /* Compact sign-in card — the form is supporting chrome, not the
    hero of the page, so it stays small. Inputs use placeholders as
    their labels (the visible "Email" / "Password" labels live inside
-   the field) which lets the card shed two ~18 px label rows. */
+   the field) which lets the card shed two ~18 px label rows.
+   `align-content: center` matters: the parent .landing column has
+   `align-items: stretch` (equal-height columns by design), so the
+   card itself is taller than its natural content. Without this, the
+   grid's default `stretch` distributes the slack across rows and
+   each input + the button balloons. Centring keeps every row at its
+   intrinsic height and parks the form mid-column. */
 .signin-card {
   display: grid; gap: var(--space-2);
+  align-content: center;
   padding: var(--space-3);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
