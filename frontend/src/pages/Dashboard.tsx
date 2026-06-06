@@ -1,10 +1,13 @@
-// Tenant dashboard — list of tickets in this org, with filters by status.
+// Tenant dashboard — friendly greeting, decision-stats hero (when there's
+// data to summarise), get-started checklist (when there isn't), and the
+// status-filtered ticket list at the bottom.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../api/hooks";
-import type { Paginated, Ticket, TicketStatus } from "../api/types";
+import type { Me, Paginated, Ticket, TicketStatus } from "../api/types";
 import { useOrgRequired } from "../contexts/OrgContext";
+import { GreetingHeader, HeroCard } from "../components/brand";
 import GetStarted from "../components/GetStarted";
 
 const STATUS_OPTIONS: ({ value: TicketStatus | "all"; label: string })[] = [
@@ -20,10 +23,30 @@ const STATUS_OPTIONS: ({ value: TicketStatus | "all"; label: string })[] = [
 export default function Dashboard() {
   const orgSlug = useOrgRequired();
   const [filter, setFilter] = useState<TicketStatus | "all">("all");
+  const { data: me } = useApi<Me>("/api/me/");
   const { data, loading, error } = useApi<Paginated<Ticket>>(
     "/api/tickets/",
     { orgSlug },
   );
+
+  // Pick a first name out of the full name when we have one; fall back to
+  // the email's local part if not. Keeps the greeting feeling personal even
+  // when full_name is blank.
+  const greetingName = useMemo(() => {
+    const fn = me?.full_name?.trim();
+    if (fn) return fn.split(/\s+/)[0];
+    if (me?.email) return me.email.split("@")[0];
+    return "there";
+  }, [me]);
+
+  const stats = useMemo(() => {
+    const all = data?.results ?? [];
+    const decided = all.filter((t) =>
+      ["decided", "approved", "rejected"].includes(t.status),
+    ).length;
+    const escalated = all.filter((t) => t.status === "escalated").length;
+    return { total: all.length, decided, escalated };
+  }, [data]);
 
   const visible = data?.results.filter(
     (t) => filter === "all" || t.status === filter,
@@ -31,11 +54,49 @@ export default function Dashboard() {
 
   return (
     <section className="page-dashboard">
-      <GetStarted orgSlug={orgSlug} />
+      <GreetingHeader
+        name={greetingName}
+        subtitle={
+          stats.total === 0
+            ? "Let's get your tenant set up."
+            : `${stats.total} ticket${stats.total === 1 ? "" : "s"} so far — ` +
+              `${stats.decided} decided automatically.`
+        }
+      />
 
-      <header className="page-header">
-        <h1 className="display-heading">Tickets</h1>
-        <Link to={`/o/${orgSlug}/new`} className="btn btn-primary">+ New ticket</Link>
+      {/* If the tenant still has setup to do, show the checklist instead of
+          the stats hero. Once everything's configured the checklist hides
+          itself, and the hero takes its place. */}
+      {stats.total > 0 ? (
+        <HeroCard
+          eyebrow="Decisions"
+          title={
+            <>
+              {stats.decided}
+              <span style={{ fontWeight: 500, opacity: 0.75 }}> / {stats.total}</span>
+              {" "}auto-decided
+            </>
+          }
+          sub={
+            stats.escalated > 0
+              ? `${stats.escalated} escalated to humans — they're waiting in the list below.`
+              : "Every ticket so far has cleared the four-guard pipeline."
+          }
+          actions={
+            <Link to={`/o/${orgSlug}/new`} className="btn btn-primary">
+              + New ticket
+            </Link>
+          }
+        />
+      ) : (
+        <GetStarted orgSlug={orgSlug} />
+      )}
+
+      <header className="page-header" style={{ marginTop: "var(--space-8)" }}>
+        <h2 className="display-heading">Tickets</h2>
+        {stats.total > 0 && (
+          <Link to={`/o/${orgSlug}/new`} className="btn">+ New ticket</Link>
+        )}
       </header>
 
       <div className="filter-row">
@@ -51,7 +112,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {loading && <p>Loading tickets…</p>}
+      {loading && <p className="muted">Loading tickets…</p>}
       {error && <p className="error">Couldn't load tickets: {error.message}</p>}
 
       {data && visible.length === 0 && (

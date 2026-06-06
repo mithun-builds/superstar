@@ -1,32 +1,26 @@
 /* SuperStar — design system.
  *
- * Patterns this stylesheet provides:
- *   - .app-shell        outer-framed canvas (rounded white card on tinted bg)
- *   - .display-heading  watermark-style page title (huge, pale, light-weight)
- *   - .metric-hero      big numeral + delta pill (dashboard hero metric)
- *   - .delta-pill       green/red trend pill for metrics
- *   - .score-badge      sticker-style score badge with wavy edge
- *   - .bento            mixed-size card grid
- *   - .accent-card      bright-fill card for emphasis (uses brand red)
- *   - .list-row         one-line list-item, click to expand/navigate
- *   - .form-field       Google-form-style tinted question card
+ * Single source of truth for everything visual. Tokens live in :root;
+ * components reference tokens, never hex literals. The catalog matches
+ * docs/brand.md one-for-one — if it's not in that doc, it's not here.
  *
- * Three responsive tiers:
- *   - default      desktop (>= 1024px)
- *   - tablet       <= 1024px (sub-nav wraps, bento collapses to 2-col)
- *   - phone        <= 640px  (everything stacks, frame loses radius)
- *
- * Tokens live below. Components reference tokens only — never hex literals.
+ * Voice of the file (top-down):
+ *   1. Tokens (color / type / spacing / radius / shadow / containers)
+ *   2. Element resets
+ *   3. Layout primitives (.app-shell, .app-main, headers, sub-nav)
+ *   4. Components, grouped by role
+ *   5. Responsive overrides — phone-first, then tablet
  */
 
 :root {
-  /* Brand */
+  /* ── Brand ─────────────────────────────────────────────── */
   --red-600: #D7242B;
   --red-700: #B81C22;
-  --red-50:  #FCE6E7;
+  --red-100: #FCE6E7;
   --gold-500: #F5C518;
+  --gold-100: #FFF6D6;
 
-  /* Neutrals */
+  /* ── Neutrals ──────────────────────────────────────────── */
   --ink-950: #0F0F11;
   --ink-900: #18181B;
   --ink-700: #3F3F46;
@@ -37,21 +31,19 @@
   --ink-100: #F4F4F5;
   --ink-50:  #FAFAFA;
   --ink-0:   #FFFFFF;
+  --bg-page: #F2F3F5;
 
-  /* Semantic state pairs */
+  /* ── Semantic states (4 pairs only) ───────────────────── */
   --ok-bg:    #E3F5E9;  --ok-fg:    #1B7A3A;
   --warn-bg:  #FFF4D6;  --warn-fg:  #8A6100;
   --err-bg:   #FCE6E7;  --err-fg:   #B81C22;
   --info-bg:  #E6F0FA;  --info-fg:  #1A56C0;
 
-  /* Type — Inter Variable (self-hosted via @fontsource), with system
-     fallbacks if the font file fails to load. Inter reads cleanly at
-     14px body size, has a wide weight range, and renders consistently
-     across Chrome/Safari/Firefox. */
-  --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* ── Type ──────────────────────────────────────────────── */
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Spacing — 4px base */
+  /* ── Spacing (4 px base) ──────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -61,15 +53,14 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* Radii — bigger than before so cards feel "soft" and modern.
-     Smaller controls (chips, pills, status badges) still use sm/md. */
-  --radius-sm: 6px;     /* chips, status pills */
-  --radius-md: 10px;    /* buttons, inputs, list rows */
-  --radius-lg: 16px;    /* card surfaces */
-  --radius-xl: 24px;    /* the outer frame */
-  --radius-2xl: 32px;   /* hero / accent cards */
+  /* ── Radii (bigger than you'd think) ──────────────────── */
+  --radius-sm:  6px;    /* chips, status pills, code tags */
+  --radius-md:  10px;   /* buttons, inputs, list rows */
+  --radius-lg:  16px;   /* card surfaces */
+  --radius-xl:  24px;   /* outer frame, hero cards */
+  --radius-2xl: 32px;   /* accent / illustration cards, FABs */
 
-  /* Shadows — three tiers. The frame uses heavy, surfaces use light. */
+  /* ── Shadows ──────────────────────────────────────────── */
   --shadow-frame:
     0 1px 2px rgba(15, 15, 17, 0.04),
     0 8px 24px -8px rgba(15, 15, 17, 0.08),
@@ -78,55 +69,52 @@
     0 1px 2px rgba(15, 15, 17, 0.03),
     0 4px 12px -4px rgba(15, 15, 17, 0.04);
   --shadow-pop:
-    0 6px 24px -8px rgba(215, 36, 43, 0.18); /* used on accent CTAs */
+    0 6px 24px -8px rgba(215, 36, 43, 0.20);      /* red glow */
+  --shadow-gold-pop:
+    0 6px 24px -8px rgba(245, 197, 24, 0.30);     /* gold glow */
 
-  /* Page backdrop — the tinted bg the outer frame sits on. */
-  --bg-page: #F2F3F5;
-
-  /* Containers */
-  --max-content: 760px;    /* form / reading pages */
-  --max-wide: 1180px;      /* dashboard, tables, bento */
-  --max-frame: 1280px;     /* outer frame max */
-  --frame-pad: 28px;       /* outer frame inner padding */
+  /* ── Containers ────────────────────────────────────────── */
+  --max-content: 760px;
+  --max-wide:   1180px;
+  --max-frame:  1280px;
+  --frame-pad:  28px;
 
   color-scheme: light;
 }
 
-/* ---------------- Reset ---------------- */
+/* ─────────────────────── Reset ─────────────────────── */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.5;
   background: var(--bg-page);
   color: var(--ink-900);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 #root { min-height: 100vh; }
+
+h1, h2, h3, h4 { margin: 0; }
 h1 {
-  font-size: 30px;
-  line-height: 1.2;
-  font-weight: 500;
-  margin: 0 0 var(--space-2);
+  font-size: 28px;
+  font-weight: 700;
   letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 h2 {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 500;
-  margin: 0 0 var(--space-3);
   letter-spacing: -0.005em;
-  color: var(--ink-900);
+  line-height: 1.25;
 }
 h3 {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-500);
-  margin: 0 0 var(--space-3);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
 }
 p { margin: 0 0 var(--space-3); }
 a { color: var(--ink-900); text-decoration: none; border-bottom: 1px solid var(--ink-300); }
@@ -158,7 +146,7 @@ input, select, textarea {
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-md);
-  padding: 8px 12px;
+  padding: 10px 12px;
   color: var(--ink-900);
   width: 100%;
   transition: border-color 0.12s, box-shadow 0.12s;
@@ -166,24 +154,19 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--ink-900);
-  box-shadow: 0 0 0 3px rgba(24,24,27,0.06);
+  box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.08);
 }
 input::placeholder, textarea::placeholder { color: var(--ink-400); }
 label { font-weight: 500; font-size: 13px; color: var(--ink-700); }
 hr { border: 0; border-top: 1px solid var(--ink-100); margin: var(--space-6) 0; }
 
-/* Native checkbox restyling — fixed width, ink-colored. */
 input[type="checkbox"] {
-  width: 14px; height: 14px; accent-color: var(--ink-900);
+  width: 16px; height: 16px;
+  accent-color: var(--red-600);
   margin: 0; cursor: pointer;
 }
 
-/* ---------------- Layout — the outer frame ----------------
- *
- * The app sits inside a soft-shadowed rounded white "card" on a tinted
- * page background. Reads like a modern fintech / dashboard product.
- * On phones the radius drops to 0 so the card fills the screen.
- */
+/* ─────────────────── Layout — outer frame ─────────────────── */
 .app-shell {
   display: flex;
   flex-direction: column;
@@ -194,9 +177,8 @@ input[type="checkbox"] {
   margin: var(--frame-pad) auto;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-frame);
-  overflow: hidden; /* keeps inner borders inside the rounded corners */
+  overflow: hidden;
 }
-
 .app-header {
   display: flex;
   align-items: center;
@@ -209,31 +191,28 @@ input[type="checkbox"] {
   width: 100%;
 }
 .brand {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-weight: 500;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-weight: 700;
   font-size: 16px;
   color: var(--ink-950);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
   border: none;
 }
 .brand:hover { border: none; }
-.brand-logo { width: 22px; height: 22px; display: block; }
+.brand-logo { width: 24px; height: 24px; display: block; }
 .sep { color: var(--ink-300); }
 .org-pill {
-  font-size: 13px;
-  color: var(--ink-500);
-  font-weight: 400;
-  border: none;
+  font-size: 13px; color: var(--ink-500);
+  font-weight: 400; border: none;
 }
 .org-pill:hover { color: var(--ink-900); border: none; }
 .header-nav { display: flex; gap: var(--space-6); margin-left: var(--space-6); }
 .header-nav a {
   color: var(--ink-500);
-  font-size: 13.5px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   border: none;
+  padding: 4px 0;
 }
 .header-nav a:hover { color: var(--ink-900); border: none; }
 .header-spacer { flex: 1; }
@@ -245,14 +224,11 @@ input[type="checkbox"] {
   align-items: center;
 }
 .badge {
-  background: var(--ink-100);
-  color: var(--ink-700);
-  padding: 1px 6px;
+  background: var(--ink-100); color: var(--ink-700);
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
 .badge.shadow { background: var(--warn-bg); color: var(--warn-fg); }
 
@@ -265,66 +241,86 @@ input[type="checkbox"] {
 }
 .app-main.wide { max-width: var(--max-wide); }
 
-/* ---------------- Page header ---------------- */
+/* ─────────────────── Page heading helpers ─────────────────── */
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: flex; justify-content: space-between; align-items: flex-start;
   margin-bottom: var(--space-8);
   gap: var(--space-4);
 }
+.display-heading {
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink-400);
+  margin: 0 0 var(--space-6);
+}
+.page-subhead {
+  font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-700);
+  margin: 0 0 var(--space-2);
+}
 .muted { color: var(--ink-500); }
-.ticket-meta {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  margin-top: var(--space-2);
-  font-size: 13px;
-  color: var(--ink-500);
-}
+.small { font-size: 12.5px; }
 
-/* ---------------- Section heading row ---------------- */
-.section {
-  margin-top: var(--space-12);
-}
-.section:first-child { margin-top: 0; }
-.section-head {
-  display: flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: var(--space-3);
-}
-
-/* ---------------- Buttons ---------------- */
+/* ─────────────────── Buttons ───────────────────
+   Three roles: primary (filled red), secondary (outline), quiet (text).
+   Plus btn-danger for destructive actions. */
 .btn {
-  border: 1px solid var(--ink-200);
+  border: 1px solid var(--ink-300);
   background: var(--ink-0);
   color: var(--ink-900);
-  padding: 7px 14px;
+  padding: 10px 18px;
   border-radius: var(--radius-md);
   cursor: pointer;
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
 }
-.btn:hover:not(:disabled) { background: var(--ink-50); border-color: var(--ink-300); }
+.btn:hover:not(:disabled) {
+  background: var(--ink-50);
+  border-color: var(--ink-400);
+}
+.btn:active:not(:disabled) { transform: scale(0.985); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--ink-900);
+  background: var(--red-600);
   color: var(--ink-0);
-  border-color: var(--ink-900);
+  border-color: var(--red-600);
+  font-weight: 700;
+  letter-spacing: -0.005em;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--ink-700);
-  border-color: var(--ink-700);
+  background: var(--red-700);
+  border-color: var(--red-700);
 }
 
-/* Brand-red CTA — used only for the single most important action on the
-   most important screens. The default primary is ink-900. */
+/* Gold "you did it" variant — for completion / approval CTAs. */
+.btn-gold {
+  background: var(--gold-500);
+  color: var(--ink-950);
+  border-color: var(--gold-500);
+  font-weight: 700;
+}
+.btn-gold:hover:not(:disabled) {
+  filter: brightness(0.96);
+  border-color: var(--gold-500);
+}
+
+/* Legacy alias kept so older code still renders. btn-accent === btn-primary. */
 .btn-accent {
   background: var(--red-600);
   color: var(--ink-0);
   border-color: var(--red-600);
+  font-weight: 700;
 }
 .btn-accent:hover:not(:disabled) {
   background: var(--red-700);
@@ -332,56 +328,46 @@ input[type="checkbox"] {
 }
 
 .btn-quiet {
-  background: transparent;
-  border: none;
+  background: transparent; border: none;
   color: var(--ink-700);
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font: inherit; font-size: 14px;
+  min-height: auto;
 }
 .btn-quiet:hover:not(:disabled) { background: var(--ink-100); color: var(--ink-900); }
 .btn-quiet:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-danger {
-  background: transparent;
-  border: none;
+  background: transparent; border: none;
   color: var(--err-fg);
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; font: inherit; font-size: 14px;
+  min-height: auto;
 }
 .btn-danger:hover:not(:disabled) { background: var(--err-bg); }
 
 .btn-approve {
   background: var(--ok-fg); color: var(--ink-0); border-color: var(--ok-fg);
-  padding: 7px 14px; border-radius: var(--radius-md);
-  cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 500;
+  padding: 10px 18px; border-radius: var(--radius-md);
+  cursor: pointer; font: inherit; font-size: 14px; font-weight: 700;
+  min-height: 40px;
 }
 .btn-approve:hover:not(:disabled) { filter: brightness(0.95); }
 .btn-reject {
   background: var(--err-fg); color: var(--ink-0); border-color: var(--err-fg);
-  padding: 7px 14px; border-radius: var(--radius-md);
-  cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 500;
+  padding: 10px 18px; border-radius: var(--radius-md);
+  cursor: pointer; font: inherit; font-size: 14px; font-weight: 700;
+  min-height: 40px;
 }
 .btn-reject:hover:not(:disabled) { filter: brightness(0.95); }
 
-.btn-row { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.btn-row { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
 
 .link-btn {
-  background: transparent;
-  border: none;
-  color: var(--ink-900);
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
-  font-size: 13px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  background: transparent; border: none;
+  color: var(--ink-900); cursor: pointer; padding: 0;
+  font: inherit; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 4px;
   border-bottom: 1px solid var(--ink-300);
 }
 .link-btn:hover { border-color: var(--ink-900); }
@@ -390,43 +376,47 @@ input[type="checkbox"] {
   background: transparent;
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  cursor: pointer;
-  color: var(--ink-500);
-  font: inherit;
+  padding: 6px 10px;
+  cursor: pointer; color: var(--ink-500); font: inherit;
+  min-height: 32px;
 }
 .btn-icon:hover { background: var(--err-bg); color: var(--err-fg); border-color: transparent; }
 
-/* ---------------- Chips / filters ---------------- */
+/* ─────────────────── Pill chips — three tiers ───────────────────
+   Filter / tab pill row. Use class chip-soft on "soft-selected" and
+   chip-loud on the single "active" pill in a single-select control. */
 .filter-row { display: flex; gap: var(--space-1); margin-bottom: var(--space-6); flex-wrap: wrap; }
 .chip {
   border: 1px solid transparent;
-  background: transparent;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  background: var(--ink-50);
+  padding: 8px 14px;
+  border-radius: 999px;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  color: var(--ink-500);
+  font-size: 13px; font-weight: 500;
+  color: var(--ink-700);
+  transition: background 0.12s, color 0.12s;
 }
-.chip:hover { color: var(--ink-900); }
-.chip-active {
-  background: var(--ink-100);
-  color: var(--ink-900);
-  font-weight: 500;
+.chip:hover { background: var(--ink-100); color: var(--ink-900); }
+.chip-active {                               /* default = soft selected */
+  background: var(--red-100);
+  color: var(--red-700);
+}
+.chip-active.chip-loud {                     /* opt into loud */
+  background: var(--red-600); color: var(--ink-0);
+}
+.chip-active.chip-gold {                     /* completion variant */
+  background: var(--gold-500); color: var(--ink-950);
 }
 
-/* ---------------- Status pills ---------------- */
+/* ─────────────────── Status pills (semantic) ─────────────────── */
 .status {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  background: var(--ink-100);
-  color: var(--ink-700);
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--ink-100); color: var(--ink-700);
 }
 .status-open       { background: var(--info-bg); color: var(--info-fg); }
 .status-escalated  { background: var(--warn-bg); color: var(--warn-fg); }
@@ -440,7 +430,252 @@ input[type="checkbox"] {
 .status-pending    { background: var(--ink-100); color: var(--ink-500); }
 .status-error      { background: var(--err-bg);  color: var(--err-fg); }
 
-/* ---------------- Branded landing (unauthenticated home) ---------------- */
+/* ─────────────────── Greeting header ───────────────────
+   "Hello, [Name]." in display weight, with a soft sub-line below. */
+.greeting {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 var(--space-8);
+}
+.greeting-line {
+  font-size: clamp(32px, 5.5vw, 48px);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink-950);
+}
+.greeting-line .name { font-weight: 700; }
+.greeting-sub {
+  font-size: 16px;
+  color: var(--ink-500);
+  margin: 0;
+}
+
+/* ─────────────────── Hero card (filled red) ───────────────────
+   The big accent block at the top of a screen. Holds metric or
+   action content in white-on-red. At most one per screen. */
+.hero-card {
+  background: var(--red-600);
+  color: var(--ink-0);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6) var(--space-8);
+  display: grid;
+  gap: var(--space-4);
+  position: relative;
+  overflow: hidden;
+}
+.hero-card::after {
+  /* Subtle gold star watermark in the corner — barely-there decoration */
+  content: "";
+  position: absolute;
+  right: -40px; top: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(245, 197, 24, 0.18) 0%, transparent 60%);
+  pointer-events: none;
+}
+.hero-card-eyebrow {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.75);
+}
+.hero-card-title {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.hero-card-sub {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 60ch;
+}
+.hero-card-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+/* Buttons inside a red hero — flip primary to gold so it doesn't melt
+   into the background; secondary becomes a translucent white outline. */
+.hero-card .btn-primary {
+  background: var(--gold-500);
+  border-color: var(--gold-500);
+  color: var(--ink-950);
+}
+.hero-card .btn-primary:hover:not(:disabled) {
+  background: var(--gold-500);
+  filter: brightness(0.96);
+}
+.hero-card .btn {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: var(--ink-0);
+}
+.hero-card .btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ─────────────────── Sticker card (filled gold) ───────────────────
+   For "you did it" / completion / score moments. Rare. */
+.sticker-card {
+  background: var(--gold-500);
+  color: var(--ink-950);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6) var(--space-8);
+  display: grid;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-gold-pop);
+}
+.sticker-card-eyebrow {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-900);
+}
+
+/* ─────────────────── Score disc — sticker badge ─────────────────── */
+.score-disc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px; height: 56px;
+  padding: 0 var(--space-3);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink-950);
+  background: var(--gold-500);
+  border-radius: 999px;
+  letter-spacing: -0.01em;
+}
+.score-row { display: inline-flex; align-items: center; gap: var(--space-3); }
+.score-label { font-size: 13px; color: var(--ink-500); }
+
+/* ─────────────────── Metric hero ─────────────────── */
+.metric-hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-2) 0;
+}
+.metric-hero-value {
+  font-size: clamp(40px, 6vw, 56px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink-950);
+  font-variant-numeric: tabular-nums;
+}
+.metric-hero-value .decimals {
+  font-size: 0.6em;
+  color: var(--ink-500);
+  font-weight: 500;
+}
+.metric-label { font-size: 13px; color: var(--ink-500); }
+
+.delta-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.delta-pill.up   { background: var(--ok-bg);  color: var(--ok-fg); }
+.delta-pill.down { background: var(--err-bg); color: var(--err-fg); }
+.delta-pill::before { font-size: 10px; line-height: 1; }
+.delta-pill.up::before   { content: "▲"; }
+.delta-pill.down::before { content: "▼"; }
+
+/* ─────────────────── Bento grid ─────────────────── */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.bento > * {
+  grid-column: span var(--span, 1);
+  grid-row: span var(--row-span, 1);
+}
+.bento-card {
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink-50);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  display: grid; gap: var(--space-2);
+  min-height: 0;
+}
+.bento-card.accent {
+  background: var(--red-600);
+  color: var(--ink-0);
+  border-color: var(--red-600);
+}
+.bento-card.accent .metric-hero-value,
+.bento-card.accent .metric-label { color: var(--ink-0); }
+.bento-card.accent .metric-hero-value .decimals { color: rgba(255,255,255,0.65); }
+.bento-card.gold {
+  background: var(--gold-500);
+  color: var(--ink-950);
+  border-color: var(--gold-500);
+}
+
+/* ─────────────────── Org picker ─────────────────── */
+.org-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+.org-list li { display: block; }
+
+.org-tile {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink-50);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  color: var(--ink-900);
+  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+}
+.org-tile:hover {
+  background: var(--ink-0);
+  border-color: var(--ink-300);
+  text-decoration: none;
+}
+.org-tile-avatar {
+  width: 48px; height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--ink-900);
+  color: var(--ink-0);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+}
+.org-tile-body { display: grid; gap: 2px; min-width: 0; }
+.org-tile-name {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+}
+.org-tile-meta {
+  display: flex; align-items: center; gap: var(--space-2);
+  color: var(--ink-500); font-size: 13px;
+}
+.org-tile-meta code { background: transparent; padding: 0; font-size: 13px; color: var(--ink-500); }
+.org-tile-arrow {
+  font-size: 18px; color: var(--ink-400);
+  transition: color 0.12s, transform 0.12s;
+}
+.org-tile:hover .org-tile-arrow { color: var(--ink-900); transform: translateX(2px); }
+
+.empty-state { margin-top: var(--space-8); display: grid; gap: var(--space-4); }
+
+/* Legacy aliases — keep so old code still renders. */
+.org-card {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  color: var(--ink-900);
+}
+.org-card:hover { border-color: var(--ink-300); }
+.org-card-name { font-weight: 700; }
+.org-slug, .org-role { color: var(--ink-500); font-size: 13px; }
+
+/* ─────────────────── Branded landing (unauthenticated) ─────────────────── */
 .landing {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
@@ -449,148 +684,99 @@ input[type="checkbox"] {
   min-height: calc(100vh - 200px);
   padding: var(--space-8) 0;
 }
-.landing-hero {
-  display: grid;
-  gap: var(--space-4);
-}
-.landing-logo {
-  width: 56px;
-  height: 56px;
-  margin-bottom: var(--space-2);
-}
+.landing-hero { display: grid; gap: var(--space-4); }
+.landing-logo { width: 64px; height: 64px; margin-bottom: var(--space-2); }
 .landing-title {
-  font-size: 56px;
+  font-size: clamp(48px, 7vw, 64px);
   line-height: 1.05;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   margin: 0;
   color: var(--ink-950);
 }
 .landing-tagline {
-  font-size: 22px;
+  font-size: clamp(20px, 2.5vw, 24px);
   line-height: 1.3;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ink-900);
   margin: 0;
-  /* Subtle red→gold gradient on the headline, kept low-contrast so the
-     page still reads as restrained. */
   background: linear-gradient(90deg, var(--red-600) 0%, #C9591A 60%, var(--gold-500) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
+  -webkit-background-clip: text; background-clip: text;
   color: transparent;
-  width: max-content;
-  max-width: 100%;
+  width: max-content; max-width: 100%;
 }
 .landing-sub {
-  font-size: 15.5px;
-  line-height: 1.55;
+  font-size: 16px; line-height: 1.55;
   color: var(--ink-700);
-  margin: 0;
-  max-width: 44ch;
+  margin: 0; max-width: 44ch;
 }
 
-/* Sign-in card on the landing right column. Gold-tinted border glow
-   suggests the brand without screaming. */
 .signin-card {
-  display: grid;
-  gap: var(--space-4);
+  display: grid; gap: var(--space-4);
   padding: var(--space-8);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow:
     0 1px 2px rgba(15, 15, 17, 0.04),
     0 10px 30px -10px rgba(15, 15, 17, 0.06),
     0 0 0 1px rgba(245, 197, 24, 0.08);
-  max-width: 380px;
+  max-width: 400px;
   width: 100%;
   margin-left: auto;
 }
 .signin-title {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 24px; font-weight: 700;
+  letter-spacing: -0.015em;
   margin: 0 0 var(--space-2);
   color: var(--ink-950);
 }
 .signin-card .form-field {
-  /* The form-field cards used elsewhere are too tinted for the landing —
-     here the card itself IS the tint, so each field is flat. */
-  background: transparent;
-  border: none;
-  padding: 0;
+  background: transparent; border: none; padding: 0;
 }
 .signin-card .form-field input { background: var(--ink-50); }
 .signin-card .form-field input:focus {
   background: var(--ink-0);
   border-color: var(--red-600);
-  box-shadow: 0 0 0 3px var(--red-50);
+  box-shadow: 0 0 0 3px var(--red-100);
 }
 .signin-submit {
-  width: 100%;
-  padding: 12px 18px;
-  font-size: 15px;
-  font-weight: 500;
+  width: 100%; padding: 14px 20px;
+  font-size: 15px; font-weight: 700;
   margin-top: var(--space-2);
 }
 .signin-note { font-size: 12.5px; margin: 0; }
 
-@media (max-width: 900px) {
-  .landing {
-    grid-template-columns: 1fr;
-    gap: var(--space-8);
-    text-align: center;
-  }
-  .landing-tagline { margin-inline: auto; }
-  .landing-sub { margin-inline: auto; }
-  .signin-card { margin: 0 auto; }
-}
-
-/* The landing needs a wider container than the default reading width so
-   the two-column hero has room to breathe. Override at the page-level
-   selector so the rest of /-routed pages keep the standard container. */
 .app-main:has(.landing) { max-width: var(--max-wide); }
 
-/* ---------------- Get started checklist (onboarding) ---------------- */
+/* ─────────────────── Get started checklist ─────────────────── */
 .get-started {
   border: 1px solid var(--ink-200);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-6);
   margin-bottom: var(--space-8);
   background:
-    radial-gradient(circle at top right, rgba(245, 197, 24, 0.05), transparent 60%),
+    radial-gradient(circle at top right, rgba(245, 197, 24, 0.06), transparent 60%),
     var(--ink-0);
 }
 .get-started-head {
   display: flex; justify-content: space-between; align-items: flex-start;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--space-4); margin-bottom: var(--space-4);
 }
-.get-started-head h2 { margin: 0 0 2px; font-size: 17px; font-weight: 500; }
+.get-started-head h2 { margin: 0 0 2px; font-size: 18px; font-weight: 700; }
 .get-started-progress {
-  width: 120px;
-  height: 4px;
+  width: 120px; height: 4px;
   background: var(--ink-100);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 6px;
+  border-radius: 2px; overflow: hidden;
+  margin-top: 8px;
 }
 .get-started-progress-fill {
-  height: 100%;
-  background: var(--ink-900);
+  height: 100%; background: var(--ink-900);
   transition: width 0.25s ease;
 }
-.get-started-steps {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: var(--space-2);
-}
+.get-started-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
 .get-started-step {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
+  display: grid; grid-template-columns: 28px 1fr auto;
   gap: var(--space-3);
   align-items: start;
   padding: var(--space-3) var(--space-4);
@@ -608,134 +794,27 @@ input[type="checkbox"] {
   width: 24px; height: 24px;
   border-radius: 999px;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12px; font-weight: 700;
   color: var(--ink-500);
   background: var(--ink-100);
   border: 1px solid var(--ink-200);
   margin-top: 2px;
 }
 .get-started-step.is-done .get-started-check {
-  background: var(--ok-fg);
-  color: var(--ink-0);
-  border-color: var(--ok-fg);
+  background: var(--ok-fg); color: var(--ink-0); border-color: var(--ok-fg);
 }
 .get-started-step.is-next .get-started-check {
-  background: var(--ink-900);
-  color: var(--ink-0);
-  border-color: var(--ink-900);
+  background: var(--ink-900); color: var(--ink-0); border-color: var(--ink-900);
 }
-.get-started-step-title { font-weight: 500; font-size: 14.5px; color: var(--ink-900); }
+.get-started-step-title { font-weight: 700; font-size: 15px; color: var(--ink-900); }
 .get-started-step-desc {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--ink-500);
-  line-height: 1.5;
+  margin: 4px 0 0;
+  font-size: 13px; color: var(--ink-500); line-height: 1.5;
 }
 
-@media (max-width: 720px) {
-  .get-started-step { grid-template-columns: 28px 1fr; }
-  .get-started-step .btn { grid-column: 1 / -1; margin-top: var(--space-2); }
-}
-
-/* ---------------- Org picker (homepage) ----------------
- *
- * Tiles, not table rows. Each tile is a generous click target with a
- * monogram avatar, big workspace name, and a right-pointing arrow that
- * brightens on hover. Same tinted-card pattern as the form fields so
- * the whole post-sign-in surface feels like one continuous design.
- */
-.org-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: var(--space-3);
-}
-.org-list li { display: block; }
-
-.org-tile {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-4) var(--space-6);
-  background: var(--ink-50);
-  border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
-  color: var(--ink-900);
-  transition: background 0.12s, border-color 0.12s;
-}
-.org-tile:hover {
-  background: var(--ink-0);
-  border-color: var(--ink-300);
-  text-decoration: none;
-}
-.org-tile-avatar {
-  width: 44px; height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--ink-900);
-  color: var(--ink-0);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.org-tile-body { display: grid; gap: 2px; min-width: 0; }
-.org-tile-name {
-  font-weight: 500;
-  font-size: 16px;
-  color: var(--ink-900);
-  letter-spacing: -0.005em;
-}
-.org-tile-meta {
-  display: flex; align-items: center; gap: var(--space-2);
-  color: var(--ink-500); font-size: 13px;
-}
-.org-tile-meta code {
-  background: transparent;
-  padding: 0;
-  font-size: 13px;
-  color: var(--ink-500);
-}
-.org-tile-arrow {
-  font-size: 18px;
-  color: var(--ink-400);
-  transition: color 0.12s, transform 0.12s;
-}
-.org-tile:hover .org-tile-arrow {
-  color: var(--ink-900);
-  transform: translateX(2px);
-}
-
-/* Empty state used by both the no-memberships branch and the sign-in
-   prompt. Centered prose + the relevant CTA / command. */
-.empty-state {
-  margin-top: var(--space-8);
-  display: grid;
-  gap: var(--space-4);
-}
-
-/* Legacy classes kept so any non-Home callers still render — Home no
-   longer uses them, but `.org-card` is referenced in docs/screenshots. */
-.org-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
-  color: var(--ink-900);
-}
-.org-card:hover { border-color: var(--ink-300); }
-.org-card-name { font-weight: 500; }
-.org-slug, .org-role { color: var(--ink-500); font-size: 13px; }
-
-/* ---------------- Ticket table ---------------- */
+/* ─────────────────── Ticket table ─────────────────── */
 .ticket-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: var(--space-3);
+  width: 100%; border-collapse: collapse; margin-top: var(--space-3);
 }
 .ticket-table th, .ticket-table td {
   text-align: left;
@@ -748,21 +827,14 @@ input[type="checkbox"] {
 }
 .ticket-table thead th {
   font-size: 11px;
-  color: var(--ink-500);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--ink-500); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
   border-bottom-color: var(--ink-200);
 }
 .ticket-table tbody tr:hover { background: var(--ink-50); }
 
-/* ---------------- Dynamic form (requester side) ----------------
- *
- * Google-Form-style: each field is its own card on a tinted surface
- * with a generous inner padding and ample gap between cards. Inputs
- * are bigger and feel "spacious" — the page reads as a sequence of
- * questions, not a tight admin form. .form-field is the card root.
- */
+/* ─────────────────── Dynamic form (requester side) ───────────────────
+   Google-Forms-style — each form-field is a tinted question card. */
 .dyn-form, form { display: grid; gap: var(--space-6); }
 
 .form-field {
@@ -771,7 +843,7 @@ input[type="checkbox"] {
   padding: var(--space-4) var(--space-6);
   background: var(--ink-50);
   border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   transition: border-color 0.12s, background 0.12s;
 }
 .form-field:focus-within {
@@ -779,25 +851,17 @@ input[type="checkbox"] {
   border-color: var(--ink-300);
 }
 .form-field label {
-  font-weight: 500;
-  font-size: 15px;
-  color: var(--ink-900);
-  letter-spacing: -0.005em;
+  font-weight: 500; font-size: 15px;
+  color: var(--ink-900); letter-spacing: -0.005em;
 }
-/* Helper text sits BETWEEN the label and the input — Google's pattern.
-   Explanation comes before the input, not after. */
 .form-field .help {
-  color: var(--ink-500);
-  font-size: 13px;
+  color: var(--ink-500); font-size: 13px;
   margin: -2px 0 var(--space-1);
 }
-/* Field inputs: a touch taller for spaciousness; transparent so the
-   tinted .form-field background shows through, focusing the user on
-   the active card. */
 .form-field input,
 .form-field select,
 .form-field textarea {
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--ink-0);
   border-color: var(--ink-200);
 }
@@ -808,21 +872,17 @@ input[type="checkbox"] {
   box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06);
 }
 
-/* Bool field — checkbox wraps in the label so the whole row clicks. */
-.form-field .checkbox-inline { gap: 10px; font-size: 15px; font-weight: 500; color: var(--ink-900); cursor: pointer; }
-.form-field .checkbox-inline input[type="checkbox"] { width: 16px; height: 16px; }
+.form-field .checkbox-inline {
+  gap: 10px; font-size: 15px; font-weight: 500;
+  color: var(--ink-900); cursor: pointer;
+  display: inline-flex; align-items: center;
+}
+.form-field .checkbox-inline input[type="checkbox"] { width: 18px; height: 18px; }
 
-/* Global help (outside .form-field, e.g. plain forms) stays the muted
-   small text. */
 .help { color: var(--ink-500); font-size: 12.5px; margin-top: 2px; }
-
-/* Required marker is intentionally absent — most fields are required
-   by default. `OptionalMark` flags the exceptions instead. */
 .optional-mark { color: var(--ink-400); font-weight: 400; font-size: 13px; }
-.required { color: var(--red-600); margin-left: 2px; } /* legacy */
+.required { color: var(--red-600); margin-left: 2px; }
 
-/* Submit-button container — top divider so the action separates from
-   the last field and the button doesn't run into helper text. */
 .form-actions {
   margin-top: var(--space-2);
   padding-top: var(--space-6);
@@ -830,12 +890,230 @@ input[type="checkbox"] {
   justify-content: flex-end;
   gap: var(--space-2);
 }
-.form-actions .btn-primary { padding: 10px 20px; font-size: 14.5px; }
+.form-actions .btn-primary { padding: 12px 22px; font-size: 15px; }
 
-/* ---------------- Cards / detail ---------------- */
-.ticket-grid {
+/* ─────────────────── Toggle switch ─────────────────── */
+.toggle {
+  width: 44px; height: 24px;
+  background: var(--ink-300);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background 0.16s;
+  flex-shrink: 0;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  background: var(--ink-0);
+  border-radius: 50%;
+  transition: transform 0.16s;
+  box-shadow: 0 1px 3px rgba(15, 15, 17, 0.18);
+}
+.toggle[aria-checked="true"] { background: var(--red-600); }
+.toggle[aria-checked="true"]::after { transform: translateX(20px); }
+.toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─────────────────── Segmented control ─────────────────── */
+.segmented {
+  display: inline-flex;
+  background: var(--ink-100);
+  padding: 4px;
+  border-radius: 999px;
+  gap: 0;
+}
+.segmented button {
+  background: transparent; border: none;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font: inherit; font-size: 13.5px; font-weight: 500;
+  color: var(--ink-700);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.segmented button:hover { color: var(--ink-900); }
+.segmented button[aria-pressed="true"] {
+  background: var(--red-600);
+  color: var(--ink-0);
+  font-weight: 700;
+}
+
+/* ─────────────────── Date strip ─────────────────── */
+.date-strip {
+  display: flex; gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-1) 0;
+  scrollbar-width: thin;
+}
+.date-pill {
   display: grid;
-  grid-template-columns: 1fr;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 56px;
+  padding: var(--space-3) var(--space-2);
+  background: var(--ink-50);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  border: 1px solid transparent;
+  font: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.date-pill-num { font-size: 18px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.01em; }
+.date-pill-day { font-size: 11px; color: var(--ink-500); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.date-pill:hover { background: var(--ink-100); }
+.date-pill[aria-pressed="true"] {
+  background: var(--red-600);
+}
+.date-pill[aria-pressed="true"] .date-pill-num,
+.date-pill[aria-pressed="true"] .date-pill-day { color: var(--ink-0); }
+
+/* ─────────────────── Avatar ─────────────────── */
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 999px;
+  background: var(--ink-100);
+  color: var(--ink-900);
+  font-weight: 700; font-size: 16px;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+  border: 2px solid var(--ink-0);
+  box-shadow: 0 0 0 1px var(--ink-200);
+}
+.avatar-sm { width: 32px; height: 32px; font-size: 13px; }
+.avatar-lg { width: 56px; height: 56px; font-size: 22px; }
+
+/* ─────────────────── FAB ─────────────────── */
+.fab {
+  position: fixed;
+  bottom: calc(var(--frame-pad) + var(--space-6) + 56px); /* sits above bottom-nav when present */
+  right: var(--space-6);
+  width: 56px; height: 56px;
+  background: var(--red-600);
+  color: var(--ink-0);
+  border: none; border-radius: 50%;
+  box-shadow: var(--shadow-pop);
+  cursor: pointer;
+  font-size: 26px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 0.08s, background 0.12s;
+  z-index: 10;
+}
+.fab:hover { background: var(--red-700); }
+.fab:active { transform: scale(0.94); }
+
+/* ─────────────────── Bottom nav (mobile) ─────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: none; /* shown only on phone via responsive override */
+  justify-content: space-around;
+  align-items: center;
+  background: var(--ink-0);
+  border-top: 1px solid var(--ink-200);
+  padding: var(--space-2) 0 max(var(--space-2), env(safe-area-inset-bottom));
+  z-index: 9;
+}
+.bottom-nav a {
+  display: grid; place-items: center; gap: 4px;
+  padding: 8px 12px;
+  color: var(--ink-500);
+  font-size: 11px; font-weight: 500;
+  border: none;
+  text-decoration: none;
+  flex: 1;
+  min-height: 44px;
+}
+.bottom-nav a:hover { color: var(--ink-900); border: none; }
+.bottom-nav a.active {
+  color: var(--red-600);
+  font-weight: 700;
+}
+.bottom-nav a .icon { font-size: 20px; line-height: 1; }
+
+/* ─────────────────── List row (collapsible admin pattern) ─────────────────── */
+.list { display: grid; gap: var(--space-2); }
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.list-row:hover { border-color: var(--ink-300); }
+.list-row-summary {
+  display: flex; align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+.list-row-summary .mono { font-family: var(--font-mono); font-size: 13px; }
+.list-row-summary .sep-dot { color: var(--ink-300); }
+.list-row-meta { color: var(--ink-500); font-size: 13px; }
+
+.list-row-expanded {
+  border: 1px solid var(--ink-300);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
+  display: grid; gap: var(--space-3);
+}
+
+.row-actions {
+  display: flex; gap: var(--space-1);
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--ink-100);
+  flex-wrap: wrap;
+}
+
+.list-add {
+  border: 1px dashed var(--ink-300);
+  background: transparent;
+  color: var(--ink-500);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 500;
+  text-align: left;
+  width: 100%;
+}
+.list-add:hover { border-color: var(--ink-500); color: var(--ink-900); background: var(--ink-50); }
+
+.input-tiny { width: 80px; }
+.input-narrow { width: 180px; }
+
+.grid-two {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.disclosure {
+  background: transparent; border: none;
+  color: var(--ink-500);
+  font: inherit; font-size: 13px;
+  cursor: pointer;
+  padding: var(--space-2) 0;
+  display: inline-flex; gap: var(--space-1); align-items: center;
+}
+.disclosure:hover { color: var(--ink-900); }
+.disclosure-panel {
+  margin-top: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--ink-100);
+  display: grid; gap: var(--space-3);
+}
+
+/* ─────────────────── Cards / detail page ─────────────────── */
+.ticket-grid {
+  display: grid; grid-template-columns: 1fr;
   gap: var(--space-6);
 }
 .card {
@@ -847,49 +1125,53 @@ input[type="checkbox"] {
 .card-wide { grid-column: 1 / -1; }
 .payload-pre { font-size: 12.5px; }
 
-/* ---------------- Decision panel ---------------- */
+/* ─────────────────── Decision panel ─────────────────── */
 .decision-panel {
-  display: grid;
-  gap: var(--space-3);
+  display: grid; gap: var(--space-3);
   padding: var(--space-4) var(--space-6);
   border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--ink-50);
 }
-.decision-row { font-size: 14px; display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; }
-.decision-row > strong { color: var(--ink-500); font-weight: 500; font-size: 13px; min-width: 92px; }
+.decision-row {
+  font-size: 14px;
+  display: flex; gap: var(--space-2);
+  align-items: baseline; flex-wrap: wrap;
+}
+.decision-row > strong {
+  color: var(--ink-500); font-weight: 500;
+  font-size: 13px; min-width: 92px;
+}
 .decision-row p { margin: 0; }
 .rule-tag {
-  background: var(--ink-100);
-  color: var(--ink-900);
+  background: var(--ink-100); color: var(--ink-900);
   margin-right: var(--space-1);
-  padding: 1px 6px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 12.5px;
   font-family: var(--font-mono);
 }
 
-/* ---------------- Stages ---------------- */
+/* ─────────────────── Stages ─────────────────── */
 .stages-list {
   list-style: none; padding: 0; display: grid; gap: var(--space-3); margin: 0;
 }
 .stage {
   border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
 }
 .stage-row { display: flex; justify-content: space-between; align-items: center; }
-.stage-name { font-weight: 500; }
+.stage-name { font-weight: 700; }
 .stage-active { border-color: var(--ink-900); }
 .stage-note { font-style: italic; color: var(--ink-500); margin: var(--space-2) 0 0; }
 .stage-meta { color: var(--ink-500); font-size: 12.5px; margin: var(--space-1) 0 0; }
 .stage-actions { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
 
-/* ---------------- Errors ---------------- */
+/* ─────────────────── Errors ─────────────────── */
 .error { color: var(--err-fg); }
 .error-block {
-  background: var(--err-bg);
-  color: var(--err-fg);
+  background: var(--err-bg); color: var(--err-fg);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   white-space: pre-wrap;
@@ -897,111 +1179,27 @@ input[type="checkbox"] {
   font-family: var(--font-mono);
 }
 
-/* ---------------- Admin pages — list items + collapsed rows ---------------- */
+/* ─────────────────── Admin checkboxes ─────────────────── */
 .checkbox-row {
-  display: flex; gap: var(--space-6); flex-wrap: wrap; margin: var(--space-2) 0;
+  display: flex; gap: var(--space-6); flex-wrap: wrap;
+  margin: var(--space-2) 0;
   font-size: 14px;
 }
-.checkbox-row label { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; color: var(--ink-900); }
-.checkbox-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
-
-/* Collapsed list row — one line summary, click to expand. */
-.list-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+.checkbox-row label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 400; color: var(--ink-900);
 }
-.list-row:hover { border-color: var(--ink-300); }
-.list-row-summary {
-  display: flex; align-items: center; gap: var(--space-3);
-  font-size: 14px;
-  flex-wrap: wrap;
-}
-.list-row-summary .mono { font-family: var(--font-mono); font-size: 13px; }
-.list-row-summary .sep-dot { color: var(--ink-300); }
-.list-row-meta { color: var(--ink-500); font-size: 13px; }
+.checkbox-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
 
-/* Expanded edit row — replaces the collapsed view in-place. */
-.list-row-expanded {
-  border: 1px solid var(--ink-300);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-6);
-  display: grid;
-  gap: var(--space-3);
-}
-
-.row-actions {
-  display: flex;
-  gap: var(--space-1);
-  justify-content: flex-end;
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--ink-100);
-}
-
-.list { display: grid; gap: var(--space-2); }
-.list-add {
-  border: 1px dashed var(--ink-200);
-  background: transparent;
-  color: var(--ink-500);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font: inherit;
-  font-size: 13.5px;
-  text-align: left;
-  width: 100%;
-}
-.list-add:hover { border-color: var(--ink-400); color: var(--ink-900); }
-
-.input-tiny { width: 80px; }
-.input-narrow { width: 180px; }
-
-.grid-two {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-}
-
-/* Disclosure / "Show advanced" link. */
-.disclosure {
-  background: transparent;
-  border: none;
-  color: var(--ink-500);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  padding: var(--space-2) 0;
-  display: inline-flex;
-  gap: var(--space-1);
-  align-items: center;
-}
-.disclosure:hover { color: var(--ink-900); }
-.disclosure-panel {
-  margin-top: var(--space-3);
-  padding-left: var(--space-4);
-  border-left: 2px solid var(--ink-100);
-  display: grid;
-  gap: var(--space-3);
-}
-
-/* ---------------- Markdown editor split ---------------- */
+/* ─────────────────── Markdown editor split ─────────────────── */
 .md-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
   align-items: stretch;
 }
 .md-split textarea {
-  width: 100%;
-  resize: vertical;
-  font-family: var(--font-mono);
-  font-size: 13px;
+  width: 100%; resize: vertical;
+  font-family: var(--font-mono); font-size: 13px;
 }
 .md-preview-pane {
   background: var(--ink-50);
@@ -1014,7 +1212,7 @@ input[type="checkbox"] {
 .md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 {
   margin: var(--space-3) 0 var(--space-1);
 }
-.md-preview h1 { font-size: 17px; }
+.md-preview h1 { font-size: 18px; }
 .md-preview h2 { font-size: 15px; }
 .md-preview h3 { font-size: 14px; }
 .md-preview p, .md-preview ul, .md-preview ol { margin: var(--space-2) 0; }
@@ -1027,7 +1225,7 @@ input[type="checkbox"] {
   margin: var(--space-2) 0;
 }
 
-/* ---------------- applies_when builder ---------------- */
+/* ─────────────────── applies_when builder ─────────────────── */
 .applies-when-builder { display: grid; gap: var(--space-2); }
 .applies-when-builder p.small { font-size: 12.5px; color: var(--ink-500); }
 .cond-row {
@@ -1040,39 +1238,35 @@ input[type="checkbox"] {
   border: 1px solid var(--ink-100);
   border-radius: var(--radius-md);
 }
-.cond-row > input, .cond-row > select { padding: 5px 10px; }
+.cond-row > input, .cond-row > select { padding: 6px 12px; }
 .cond-value-half { display: inline-block; }
-.cond-row:has(.cond-value-half) {
-  grid-template-columns: 1.4fr 1fr 0.8fr 0.8fr auto;
-}
+.cond-row:has(.cond-value-half) { grid-template-columns: 1.4fr 1fr 0.8fr 0.8fr auto; }
 
-/* ---------------- Admin sub-nav ---------------- */
+/* ─────────────────── Admin sub-nav ─────────────────── */
 .admin-subnav {
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-8);
   border-bottom: 1px solid var(--ink-100);
 }
 .admin-subnav-inner {
   display: flex; gap: var(--space-6);
   max-width: var(--max-wide);
-  margin: 0 auto;
-  width: 100%;
+  margin: 0 auto; width: 100%;
 }
 .admin-subnav a {
   padding: var(--space-3) 0;
   color: var(--ink-500);
-  font-size: 13.5px;
+  font-size: 14px; font-weight: 500;
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
 .admin-subnav a:hover { color: var(--ink-900); border: none; border-bottom: 2px solid transparent; }
 .admin-subnav a.active {
-  color: var(--ink-900);
-  font-weight: 500;
-  border-bottom-color: var(--ink-900);
+  color: var(--ink-900); font-weight: 700;
+  border-bottom-color: var(--red-600);
 }
 
-/* ---------------- Approver team selector ---------------- */
+/* ─────────────────── Approver team selector ─────────────────── */
 .approver-team-selector { display: grid; gap: var(--space-1); }
 .chip-row { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .chip.chip-stale {
@@ -1081,7 +1275,7 @@ input[type="checkbox"] {
   color: var(--err-fg);
 }
 
-/* ---------------- Field conditions UI ---------------- */
+/* ─────────────────── Field conditions UI ─────────────────── */
 .conditions-row { margin-top: var(--space-2); }
 .inline-chip { font-size: 10px; padding: 1px 6px; cursor: default; }
 .conditions-panel {
@@ -1089,9 +1283,8 @@ input[type="checkbox"] {
   padding: var(--space-3) var(--space-4);
   background: var(--ink-50);
   border: 1px solid var(--ink-100);
-  border-radius: var(--radius-md);
-  display: grid;
-  gap: var(--space-3);
+  border-radius: var(--radius-lg);
+  display: grid; gap: var(--space-3);
 }
 .choices-if-rule {
   padding: var(--space-2) var(--space-3);
@@ -1099,37 +1292,32 @@ input[type="checkbox"] {
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-md);
   margin: var(--space-1) 0;
-  display: grid;
-  gap: var(--space-1);
+  display: grid; gap: var(--space-1);
 }
 .cir-header { display: flex; justify-content: space-between; align-items: center; }
-.cir-label { font-weight: 500; font-size: 13px; }
+.cir-label { font-weight: 700; font-size: 13px; }
 
-/* ---------------- Vote tally on stages ---------------- */
+/* ─────────────────── Vote tally on stages ─────────────────── */
 .mode-badge {
   display: inline-block;
   margin-left: var(--space-1);
-  padding: 1px 6px;
-  background: var(--ink-100);
-  color: var(--ink-500);
+  padding: 2px 8px;
+  background: var(--ink-100); color: var(--ink-500);
   border-radius: var(--radius-sm);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
 .vote-summary { margin: var(--space-2) 0 0; display: grid; gap: var(--space-1); }
 .vote-counts {
-  display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center;
-  font-size: 13px;
-  color: var(--ink-500);
+  display: flex; flex-wrap: wrap; gap: var(--space-2);
+  align-items: center;
+  font-size: 13px; color: var(--ink-500);
 }
 .vote-pill {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
-  font-weight: 600;
-  font-size: 12.5px;
+  font-weight: 700; font-size: 12.5px;
 }
 .vote-pill-approve { background: var(--ok-bg); color: var(--ok-fg); }
 .vote-pill-reject  { background: var(--err-bg); color: var(--err-fg); }
@@ -1137,165 +1325,26 @@ input[type="checkbox"] {
   margin-left: var(--space-1);
   padding-left: var(--space-2);
   border-left: 1px solid var(--ink-200);
-  color: var(--ink-500);
-  font-size: 13px;
+  color: var(--ink-500); font-size: 13px;
 }
 .vote-meter {
-  height: 2px;
-  background: var(--ink-100);
-  border-radius: 1px;
-  overflow: hidden;
+  height: 3px; background: var(--ink-100);
+  border-radius: 2px; overflow: hidden;
 }
 .vote-meter-fill {
-  height: 100%;
-  background: var(--ok-fg);
+  height: 100%; background: var(--ok-fg);
   transition: width 0.2s ease;
 }
-.small { font-size: 12.5px; }
 
-/* ---------------- Page templates ---------------- */
-
-/* Watermark page heading — huge, pale, light-weight. Pair with a small
-   .page-subhead label above it for context (e.g. "Dashboard", "Admin"). */
-.display-heading {
-  font-size: clamp(40px, 6vw, 64px);
-  line-height: 1;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  color: var(--ink-300);
-  margin: 0 0 var(--space-6);
-}
-.page-subhead {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ink-700);
-  margin: 0 0 var(--space-2);
-}
-
-/* Hero metric — huge number with decimals stepped down, plus delta pills.
-   Drop into a .metric-card to wrap with surface styling. */
-.metric-hero {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+/* ─────────────────── Ticket meta strip ─────────────────── */
+.ticket-meta {
+  display: flex; gap: var(--space-3); align-items: center;
+  margin-top: var(--space-2);
+  font-size: 13px; color: var(--ink-500);
   flex-wrap: wrap;
-  margin: var(--space-2) 0;
-}
-.metric-hero-value {
-  font-size: clamp(36px, 5vw, 52px);
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: var(--ink-950);
-  font-variant-numeric: tabular-nums;
-}
-.metric-hero-value .decimals {
-  font-size: 0.6em;
-  color: var(--ink-500);
-  font-weight: 500;
-}
-.metric-label {
-  font-size: 13px;
-  color: var(--ink-500);
-  margin-bottom: 2px;
 }
 
-/* Delta pills — green for up, red for down. Used next to metric heroes. */
-.delta-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-.delta-pill.up   { background: var(--ok-bg);  color: var(--ok-fg); }
-.delta-pill.down { background: var(--err-bg); color: var(--err-fg); }
-.delta-pill::before { font-size: 11px; line-height: 1; }
-.delta-pill.up::before   { content: "▲"; }
-.delta-pill.down::before { content: "▼"; }
-
-/* Sticker score badge — wavy edge via mask-image, gold accent. */
-.score-badge {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 64px; height: 64px;
-  font-size: 18px;
-  font-weight: 700;
-  font-family: var(--font-sans);
-  color: var(--ink-950);
-  background: var(--gold-500);
-  border-radius: 50%;
-  /* Wavy edge — a radial-gradient-cut SVG mask gives the sticker look. */
-  -webkit-mask-image:
-    radial-gradient(circle at 50% 50%, black 56%, transparent 57%);
-  mask-image:
-    radial-gradient(circle at 50% 50%, black 56%, transparent 57%);
-  /* Stack the actual content via padding so the mask doesn't clip text. */
-}
-.score-badge-row {
-  display: inline-flex; align-items: center; gap: var(--space-3);
-}
-.score-badge-label { font-size: 13px; color: var(--ink-500); }
-
-/* Simpler sticker variant for inline use — no wavy mask, just the disc. */
-.score-disc {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px; height: 56px;
-  padding: 0 var(--space-3);
-  font-weight: 700;
-  font-size: 17px;
-  color: var(--ink-950);
-  background: var(--gold-500);
-  border-radius: 999px;
-  letter-spacing: -0.01em;
-}
-
-/* Bento grid — flexible mixed-size cards. Default 3 cols; spans via
-   --span on the child. */
-.bento {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
-}
-.bento > * {
-  grid-column: span var(--span, 1);
-  grid-row: span var(--row-span, 1);
-}
-.bento-card {
-  padding: var(--space-4) var(--space-6);
-  background: var(--ink-50);
-  border: 1px solid var(--ink-100);
-  border-radius: var(--radius-lg);
-  display: grid;
-  gap: var(--space-2);
-  min-height: 0;
-}
-.bento-card.accent {
-  background: var(--red-600);
-  color: var(--ink-0);
-  border-color: var(--red-600);
-}
-.bento-card.accent .metric-hero-value,
-.bento-card.accent .metric-label { color: var(--ink-0); }
-.bento-card.accent .metric-hero-value .decimals { color: rgba(255,255,255,0.65); }
-.bento-card.gold {
-  background: var(--gold-500);
-  color: var(--ink-950);
-  border-color: var(--gold-500);
-}
-
-/* ---------------- Responsive — three tiers ---------------- */
-/* Tablet — <=1024 px. Sub-nav can wrap; bento collapses to 2 columns;
-   landing hero stays 2-col but tighter. */
+/* ─────────────────── Responsive — tablet + phone ─────────────────── */
 @media (max-width: 1024px) {
   :root { --frame-pad: 16px; }
   .app-shell { border-radius: var(--radius-lg); }
@@ -1304,11 +1353,9 @@ input[type="checkbox"] {
   .app-main { padding-inline: var(--space-6); }
   .bento { grid-template-columns: repeat(2, 1fr); }
   .md-split { grid-template-columns: 1fr; }
+  .landing { gap: var(--space-8); }
 }
 
-/* Phone — <=640 px. The frame loses its radius (fills the screen),
-   nav wraps, every multi-col layout collapses to one, container padding
-   tightens. Touch targets stay >=44 px. */
 @media (max-width: 640px) {
   :root { --frame-pad: 0px; }
   .app-shell { border-radius: 0; box-shadow: none; }
@@ -1322,13 +1369,19 @@ input[type="checkbox"] {
     margin-left: 0;
     gap: var(--space-4);
     width: 100%;
-    order: 3;            /* nav drops below brand+org on a new row */
+    order: 3;
     padding-top: var(--space-2);
     border-top: 1px solid var(--ink-100);
   }
-  .header-nav a { padding: 8px 0; min-height: 44px; display: inline-flex; align-items: center; }
+  .header-nav a {
+    padding: 10px 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
   .header-spacer { display: none; }
   .user { font-size: 12.5px; margin-left: auto; }
+  .admin-subnav { padding-inline: var(--space-4); }
   .admin-subnav-inner { gap: var(--space-3); overflow-x: auto; }
   .admin-subnav-inner a { white-space: nowrap; }
   .app-main { padding: var(--space-6) var(--space-4) var(--space-12); }
@@ -1339,20 +1392,38 @@ input[type="checkbox"] {
   .org-card { grid-template-columns: 1fr; gap: var(--space-1); }
   .cond-row, .cond-row:has(.cond-value-half) { grid-template-columns: 1fr; }
 
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .page-header > div + div { width: 100%; }  /* button row goes full-width */
+  .page-header { flex-direction: column; align-items: stretch; }
+  .page-header > div + div { width: 100%; }
+  .page-header .btn-primary { width: 100%; min-height: 48px; }
   .row-actions { flex-wrap: wrap; }
 
-  /* Tap target floor — buttons + inputs at 44 px minimum on phone. */
-  .btn, .btn-primary, .btn-accent, .btn-approve, .btn-reject {
-    min-height: 44px;
-    padding-inline: 16px;
+  .landing { grid-template-columns: 1fr; text-align: center; }
+  .landing-tagline { margin-inline: auto; }
+  .landing-sub { margin-inline: auto; }
+  .signin-card { margin: 0 auto; }
+  .landing-title { font-size: clamp(36px, 10vw, 48px); }
+
+  /* Tap target floor — buttons + inputs at 48 px on phone. */
+  .btn-primary,
+  .btn-approve,
+  .btn-reject,
+  .btn-accent {
+    min-height: 48px;
+    padding-inline: 18px;
   }
-  input, select, textarea { font-size: 16px; }  /* iOS no-zoom on focus */
+  input, select, textarea { font-size: 16px; }   /* iOS no-zoom on focus */
 
-  /* The landing tagline gradient stays but the hero shrinks. */
-  .landing-title { font-size: clamp(36px, 9vw, 48px); }
+  .greeting-line { font-size: clamp(28px, 8vw, 36px); }
 
-  /* Tables overflow horizontally instead of breaking layout. */
+  .hero-card { padding: var(--space-6); border-radius: var(--radius-lg); }
+  .hero-card::after { width: 120px; height: 120px; right: -30px; top: -30px; }
+
   .ticket-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+  .bottom-nav { display: flex; }
+  .app-main { padding-bottom: calc(var(--space-12) + 64px); } /* room for bottom nav */
+  .fab { bottom: calc(56px + var(--space-4) + env(safe-area-inset-bottom)); }
+
+  .get-started-step { grid-template-columns: 28px 1fr; }
+  .get-started-step .btn { grid-column: 1 / -1; margin-top: var(--space-2); }
 }
