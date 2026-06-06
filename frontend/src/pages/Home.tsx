@@ -111,29 +111,29 @@ function SignInCard({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <form className="signin-card" onSubmit={handleSubmit}>
       <h2 className="signin-title">Sign in</h2>
-      <div className="form-field">
-        <label htmlFor="signin-email">Email</label>
-        <input
-          id="signin-email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoFocus
-        />
-      </div>
-      <div className="form-field">
-        <label htmlFor="signin-password">Password</label>
-        <input
-          id="signin-password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
+      {/* No visible labels — the placeholder doubles as the label.
+         aria-label keeps the input named for screen readers and tests. */}
+      <input
+        id="signin-email"
+        type="email"
+        autoComplete="email"
+        placeholder="Email"
+        aria-label="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        autoFocus
+      />
+      <input
+        id="signin-password"
+        type="password"
+        autoComplete="current-password"
+        placeholder="Password"
+        aria-label="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
       {error && <p className="error">{error}</p>}
       <button
         type="submit"

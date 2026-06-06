@@ -764,10 +764,12 @@ input[type="checkbox"] {
 }
 
 /* Compact sign-in card — the form is supporting chrome, not the
-   hero of the page, so it stays small. */
+   hero of the page, so it stays small. Inputs use placeholders as
+   their labels (the visible "Email" / "Password" labels live inside
+   the field) which lets the card shed two ~18 px label rows. */
 .signin-card {
-  display: grid; gap: 10px;
-  padding: var(--space-3) var(--space-4);
+  display: grid; gap: var(--space-2);
+  padding: var(--space-3);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-lg);
@@ -781,25 +783,18 @@ input[type="checkbox"] {
      and "Sign in" as peer headings across the two columns. */
   font-size: 16px; font-weight: 700;
   letter-spacing: -0.005em;
-  margin: 0;
+  margin: 0 0 2px;
   color: var(--ink-950);
 }
-/* Override the global .form-field tinted-card treatment inside the
-   sign-in (this isn't a Google-form question, it's a label + input). */
-.signin-card .form-field {
-  background: transparent; border: none; padding: 0;
-  gap: 3px;
-}
-.signin-card .form-field label {
-  font-size: 12px; font-weight: 500;
-  color: var(--ink-700);
-}
-.signin-card .form-field input {
+/* Direct-child inputs (no .form-field wrapper) — the placeholder is
+   the label. Tinted fill so the field reads as a chip when empty,
+   then flips to white on focus to confirm "this is where I'm typing". */
+.signin-card > input {
   background: var(--ink-50);
   font-size: 13px;
-  padding: 8px 10px;
+  padding: 9px 12px;
 }
-.signin-card .form-field input:focus {
+.signin-card > input:focus {
   background: var(--ink-0);
   border-color: var(--red-600);
   box-shadow: 0 0 0 3px var(--red-100);
@@ -808,7 +803,7 @@ input[type="checkbox"] {
   width: 100%; padding: 9px 14px;
   font-size: 13px; font-weight: 700;
   min-height: 36px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 .signin-note { font-size: 11px; margin: 0; color: var(--ink-500); }
 
