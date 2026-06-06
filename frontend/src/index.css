@@ -701,60 +701,62 @@ input[type="checkbox"] {
  * vertically and horizontally — the surrounding outer frame stays full
  * width but the landing content stays focused.
  */
+/* Single-column, centered. At this width a side-by-side hero + form
+   layout would crowd both — stacking is cleaner and matches the
+   single-card pattern used by the task-app references. */
 .landing {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: var(--space-8);
-  align-items: center;
-  justify-content: center;
-  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  align-items: stretch;
+  max-width: 380px;
   margin: 0 auto;
-  /* Sit slightly above viewport-center on tall screens — visually
-     calmer than perfect vertical centering. */
   min-height: calc(100vh - var(--space-16));
   padding-block: var(--space-12);
+  justify-content: center;
 }
-.landing-hero { display: grid; gap: var(--space-4); }
+.landing-hero { display: grid; gap: var(--space-3); }
 
 /* Brand row — logo + "SuperStar" inline. Both in brand red. */
 .landing-brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
 }
-.landing-logo { width: 36px; height: 36px; }
+.landing-logo { width: 28px; height: 28px; }
 .landing-title {
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: 22px;
   line-height: 1;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   margin: 0;
   color: var(--red-600);
 }
 
-/* Tagline — solid colour, no gradient. ink-900 bold so it reads as the
-   product statement without competing with the red wordmark. */
+/* Tagline — solid colour, no gradient. Smaller now that the layout
+   stacks; reads as a one-line product statement. */
 .landing-tagline {
-  font-size: clamp(18px, 2.2vw, 22px);
-  line-height: 1.25;
+  font-size: 15px;
+  line-height: 1.35;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   margin: 0;
   color: var(--ink-900);
 }
 
 .landing-sub {
-  font-size: 14.5px; line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--ink-700);
-  margin: 0; max-width: 44ch;
+  margin: 0;
 }
 
 .signin-card {
   display: grid; gap: var(--space-3);
-  padding: var(--space-6);
+  padding: var(--space-4) var(--space-6);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   box-shadow:
     0 1px 2px rgba(15, 15, 17, 0.04),
     0 10px 30px -10px rgba(15, 15, 17, 0.06),
@@ -762,9 +764,9 @@ input[type="checkbox"] {
   width: 100%;
 }
 .signin-title {
-  font-size: 20px; font-weight: 700;
-  letter-spacing: -0.015em;
-  margin: 0 0 var(--space-2);
+  font-size: 17px; font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
   color: var(--ink-950);
 }
 .signin-card .form-field {
@@ -777,11 +779,11 @@ input[type="checkbox"] {
   box-shadow: 0 0 0 3px var(--red-100);
 }
 .signin-submit {
-  width: 100%; padding: 12px 18px;
-  font-size: 14.5px; font-weight: 700;
+  width: 100%; padding: 11px 16px;
+  font-size: 14px; font-weight: 700;
   margin-top: var(--space-1);
 }
-.signin-note { font-size: 12.5px; margin: 0; }
+.signin-note { font-size: 12px; margin: 0; }
 
 /* The landing reins the outer container in to its own max-width. */
 .app-main:has(.landing) { max-width: var(--max-wide); }
