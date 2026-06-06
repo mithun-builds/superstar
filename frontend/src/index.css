@@ -701,31 +701,37 @@ input[type="checkbox"] {
  * vertically and horizontally — the surrounding outer frame stays full
  * width but the landing content stays focused.
  */
-/* Single-column, centered. At this width a side-by-side hero + form
-   layout would crowd both — stacking is cleaner and matches the
-   single-card pattern used by the task-app references. */
+/* Two equal columns at the minimum sensible width — wider gap so the
+   hero copy and the sign-in card read as two distinct surfaces. They
+   stretch to equal height by grid default, giving the card the same
+   visual weight as the hero. */
 .landing {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  align-items: stretch;
-  max-width: 380px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  align-items: stretch;          /* equal-height columns */
+  max-width: 600px;
   margin: 0 auto;
   min-height: calc(100vh - var(--space-16));
   padding-block: var(--space-12);
-  justify-content: center;
 }
-.landing-hero { display: grid; gap: var(--space-3); }
+/* Hero centred vertically within the stretched column so it visually
+   matches the sign-in card's center-of-mass. */
+.landing-hero {
+  display: grid;
+  gap: var(--space-3);
+  align-content: center;
+}
 
 /* Brand row — logo + "SuperStar" inline. Both in brand red. */
 .landing-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.landing-logo { width: 28px; height: 28px; }
+.landing-logo { width: 22px; height: 22px; }
 .landing-title {
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.015em;
@@ -733,11 +739,10 @@ input[type="checkbox"] {
   color: var(--red-600);
 }
 
-/* Tagline — solid colour, no gradient. Smaller now that the layout
-   stacks; reads as a one-line product statement. */
+/* Tagline — solid colour, no gradient. */
 .landing-tagline {
-  font-size: 15px;
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.3;
   font-weight: 700;
   letter-spacing: -0.005em;
   margin: 0;
@@ -745,45 +750,58 @@ input[type="checkbox"] {
 }
 
 .landing-sub {
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--ink-700);
   margin: 0;
 }
 
+/* Compact sign-in card — the form is supporting chrome, not the
+   hero of the page, so it stays small. */
 .signin-card {
-  display: grid; gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
+  display: grid; gap: 10px;
+  padding: var(--space-3) var(--space-4);
   background: var(--ink-0);
   border: 1px solid var(--ink-200);
   border-radius: var(--radius-lg);
   box-shadow:
     0 1px 2px rgba(15, 15, 17, 0.04),
-    0 10px 30px -10px rgba(15, 15, 17, 0.06),
-    0 0 0 1px rgba(245, 197, 24, 0.08);
+    0 6px 20px -8px rgba(15, 15, 17, 0.06);
   width: 100%;
 }
 .signin-title {
-  font-size: 17px; font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: -0.005em;
   margin: 0;
   color: var(--ink-950);
 }
+/* Override the global .form-field tinted-card treatment inside the
+   sign-in (this isn't a Google-form question, it's a label + input). */
 .signin-card .form-field {
   background: transparent; border: none; padding: 0;
+  gap: 3px;
 }
-.signin-card .form-field input { background: var(--ink-50); }
+.signin-card .form-field label {
+  font-size: 12px; font-weight: 500;
+  color: var(--ink-700);
+}
+.signin-card .form-field input {
+  background: var(--ink-50);
+  font-size: 13px;
+  padding: 8px 10px;
+}
 .signin-card .form-field input:focus {
   background: var(--ink-0);
   border-color: var(--red-600);
   box-shadow: 0 0 0 3px var(--red-100);
 }
 .signin-submit {
-  width: 100%; padding: 11px 16px;
-  font-size: 14px; font-weight: 700;
-  margin-top: var(--space-1);
+  width: 100%; padding: 9px 14px;
+  font-size: 13px; font-weight: 700;
+  min-height: 36px;
+  margin-top: 4px;
 }
-.signin-note { font-size: 12px; margin: 0; }
+.signin-note { font-size: 11px; margin: 0; color: var(--ink-500); }
 
 /* The landing reins the outer container in to its own max-width. */
 .app-main:has(.landing) { max-width: var(--max-wide); }
@@ -1436,11 +1454,11 @@ input[type="checkbox"] {
   .page-header .btn-primary { width: 100%; min-height: 48px; }
   .row-actions { flex-wrap: wrap; }
 
-  .landing { grid-template-columns: 1fr; text-align: center; }
-  .landing-tagline { margin-inline: auto; }
-  .landing-sub { margin-inline: auto; }
-  .signin-card { margin: 0 auto; }
-  .landing-title { font-size: clamp(36px, 10vw, 48px); }
+  /* Mobile: stack to single column but keep everything left-aligned,
+     not centered. Centered text on phones reads as "marketing splash"
+     rather than "log in to your tenant"; left-align is more honest. */
+  .landing { grid-template-columns: 1fr; }
+  .landing-title { font-size: clamp(28px, 8vw, 36px); }
 
   /* Tap target floor — buttons + inputs at 48 px on phone. */
   .btn-primary,
