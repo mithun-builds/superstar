@@ -693,6 +693,19 @@ input[type="checkbox"] {
   color: var(--ink-500);
 }
 
+/* Superuser-only cross-tenant link, between the workspace list and
+   the sign-out line. Visually subordinate (text link, no button
+   chrome) — discovery for the few, not promotion for the many. */
+.manage-workspaces-line {
+  margin-top: var(--space-4);
+  font-size: 13px;
+}
+.manage-workspaces-line a {
+  color: var(--ink-700);
+  border-bottom: 1px solid var(--ink-300);
+}
+.manage-workspaces-line a:hover { color: var(--ink-950); border-color: var(--ink-900); }
+
 /* Legacy aliases — keep so old code still renders. */
 .org-card {
   display: grid; grid-template-columns: 1fr auto;

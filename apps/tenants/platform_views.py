@@ -12,10 +12,16 @@ The flow + side effects mirror that command exactly:
   - Grant the owner an OrgMembership with role=OWNER
   - Write an audit log entry
 
-POST /api/platform/orgs/  →  201 with the created Org
-GET  /api/platform/orgs/  →  200 with the list of all orgs
-DELETE /api/platform/orgs/<id>/  →  204 (cascade deletes memberships +
-                                          tenant-scoped rows via FK CASCADE)
+POST /api/platform/orgs/        →  201 with the created Org
+GET  /api/platform/orgs/        →  200 with the list of all orgs
+PATCH /api/platform/orgs/<id>/  →  200 — rename only (display name).
+                                   Slug is immutable: it appears in every URL
+                                   the workspace's users have bookmarked, and
+                                   in audit-log entries that reference it
+                                   historically. Changing it would silently
+                                   break both.
+DELETE /api/platform/orgs/<id>/ →  204 (cascade deletes memberships +
+                                        tenant-scoped rows via FK CASCADE)
 """
 from __future__ import annotations
 
@@ -133,6 +139,57 @@ class OrgPlatformViewSet(viewsets.ViewSet):
         return Response(
             PlatformOrgSerializer(org).data, status=status.HTTP_201_CREATED,
         )
+
+    @transaction.atomic
+    def partial_update(self, request, pk=None):
+        """Rename a workspace's display name. Slug is intentionally
+        immutable — see module docstring."""
+        try:
+            org = Org.objects.get(pk=pk)
+        except Org.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        name = (request.data.get("name") or "").strip()
+        if not name:
+            return Response(
+                {"name": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(name) > 200:
+            return Response(
+                {"name": ["Must be 200 characters or fewer."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Reject attempts to change slug — even silently, would corrupt
+        # bookmarks. Send back a clear 400 so the UI can surface why.
+        if "slug" in request.data and request.data["slug"] != org.slug:
+            return Response(
+                {"slug": ["Slug is immutable. Create a new workspace if you need a different slug."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        old_name = org.name
+        if name == old_name:
+            # No-op rename — still 200, but skip the audit event.
+            org = Org.objects.filter(pk=org.pk).annotate(
+                member_count=Count("memberships"),
+            ).first()
+            return Response(PlatformOrgSerializer(org).data)
+        org.name = name
+        org.save(update_fields=["name", "updated_at"])
+        log_event(
+            event_type="config.reloaded",
+            org=org,
+            data={
+                "action": "tenant_renamed",
+                "slug": org.slug,
+                "old_name": old_name,
+                "new_name": name,
+                "via": "platform_api",
+            },
+        )
+        org = Org.objects.filter(pk=org.pk).annotate(
+            member_count=Count("memberships"),
+        ).first()
+        return Response(PlatformOrgSerializer(org).data)
 
     def destroy(self, request, pk=None):
         try:

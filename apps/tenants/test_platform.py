@@ -176,3 +176,72 @@ def test_org_admin_cannot_delete_other_orgs_org(
     resp = client_factory(acme_admin).delete(f"{URL_ORGS}{globex_org.id}/")
     assert resp.status_code == 403
     assert Org.objects.filter(pk=globex_org.pk).exists()  # still there
+
+
+# ---------------------------------------------------------------------------
+# Rename (PATCH) — display name only; slug is immutable
+# ---------------------------------------------------------------------------
+def test_superuser_can_rename_org(client_factory, superuser, acme_org) -> None:
+    resp = client_factory(superuser).patch(
+        f"{URL_ORGS}{acme_org.id}/",
+        data={"name": "Acme Corporation"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200, resp.content
+    acme_org.refresh_from_db()
+    assert acme_org.name == "Acme Corporation"
+    assert acme_org.slug == "acme"  # unchanged
+    # Audit event written with both old and new names so the trail is
+    # reconstructible later.
+    ev = AuditEvent.objects.filter(data__action="tenant_renamed").first()
+    assert ev is not None
+    assert ev.data["old_name"] != ev.data["new_name"]
+
+
+def test_rename_rejects_empty_name(client_factory, superuser, acme_org) -> None:
+    resp = client_factory(superuser).patch(
+        f"{URL_ORGS}{acme_org.id}/",
+        data={"name": "   "},
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert "name" in resp.json()
+
+
+def test_rename_rejects_slug_change(client_factory, superuser, acme_org) -> None:
+    """Slug is immutable. A request that tries to change it should 400 —
+    not silently ignore — so callers know the intent didn't land."""
+    resp = client_factory(superuser).patch(
+        f"{URL_ORGS}{acme_org.id}/",
+        data={"slug": "renamed-acme", "name": "Acme"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert "slug" in resp.json()
+    acme_org.refresh_from_db()
+    assert acme_org.slug == "acme"  # untouched
+
+
+def test_rename_noop_is_ok(client_factory, superuser, acme_org) -> None:
+    """Saving the same name back returns 200 (idempotent) but skips the
+    audit event — no actual change happened."""
+    audits_before = AuditEvent.objects.filter(data__action="tenant_renamed").count()
+    resp = client_factory(superuser).patch(
+        f"{URL_ORGS}{acme_org.id}/",
+        data={"name": acme_org.name},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    audits_after = AuditEvent.objects.filter(data__action="tenant_renamed").count()
+    assert audits_after == audits_before
+
+
+def test_org_admin_cannot_rename_org(client_factory, acme_admin, acme_org) -> None:
+    resp = client_factory(acme_admin).patch(
+        f"{URL_ORGS}{acme_org.id}/",
+        data={"name": "Acme Corporation"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 403
+    acme_org.refresh_from_db()
+    assert acme_org.name != "Acme Corporation"

@@ -76,16 +76,9 @@ export default function Layout() {
             >
               Teams
             </Link>
-            {/* Platform tab — only superusers see it. Server-side gate
-                too; this just keeps the chrome clean. */}
-            {me?.is_superuser && (
-              <Link
-                to={`/o/${slug}/admin/platform/orgs`}
-                className={location.pathname.includes("/admin/platform") ? "active" : ""}
-              >
-                Platform
-              </Link>
-            )}
+            {/* Workspace-level admin (managing all tenants on this
+                deployment) lives at the top level, NOT here — see the
+                "Manage workspaces" link on the org picker for superusers. */}
           </div>
         </nav>
       )}
