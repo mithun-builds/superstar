@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  SuperStar mark.
+  Superstar mark.
 
   The shape is a ticket — a rounded square with two semicircular notches cut
   at the left and right midpoints — encoding the product (ticketing) directly
@@ -8,13 +8,13 @@
   picks up the gold accent from the brand palette.
 
   Single-colour-on-white reductions are easy: render either piece in solid
-  black or the SuperStar red on a white background.
+  black or the Superstar red on a white background.
 
   Colours are CSS custom properties so the same file can be re-themed by a
   parent <svg> wrapper without forking the path data.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SuperStar">
-  <title>SuperStar</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Superstar">
+  <title>Superstar</title>
   <!-- Ticket body: rounded square (radius 20) with two 24-radius semicircular
        notches cut inward at the left and right midpoints. -->
   <path

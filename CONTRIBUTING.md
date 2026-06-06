@@ -1,10 +1,10 @@
-# Contributing to SuperStar
+# Contributing to Superstar
 
-Thanks for the interest. SuperStar is early — feedback on the architecture is as valuable as code right now.
+Thanks for the interest. Superstar is early — feedback on the architecture is as valuable as code right now.
 
 ## Ground rules
 
-1. **No customer-specific code in this repo.** SuperStar is a generic platform. Tenants — HomeLane, your-company, anyone else — configure themselves entirely through the SuperStar admin UI. Their data lives in their deployment's Postgres, not in YAML files. PRs that hardcode customer assumptions or add per-customer code paths will be asked to refactor.
+1. **No customer-specific code in this repo.** Superstar is a generic platform. Tenants — HomeLane, your-company, anyone else — configure themselves entirely through the Superstar admin UI. Their data lives in their deployment's Postgres, not in YAML files. PRs that hardcode customer assumptions or add per-customer code paths will be asked to refactor.
 2. **No hallucinations.** Anything that touches the decisioning loop must preserve the four-guard contract: cite rule_ids, verify citations against retrieved chunks, check `applies_when` against the payload, respect the confidence threshold.
 3. **Multi-tenant or it doesn't ship.** Every user-facing model has an `org_id`. RLS policies are part of the migration, not a follow-up.
 
@@ -32,11 +32,11 @@ Every PR needs tests. RAG/decisioning changes need eval harness updates — see 
 
 ## Adding a ticket type
 
-You don't. Ticket types are runtime configuration, not code. Create them via the admin UI inside a deployed SuperStar instance. If a *new capability* is needed for ticket types in general (e.g. a new field type, a new approval mode, a new `applies_when` operator), that's a PR — extend the model / DSL evaluator / serializer.
+You don't. Ticket types are runtime configuration, not code. Create them via the admin UI inside a deployed Superstar instance. If a *new capability* is needed for ticket types in general (e.g. a new field type, a new approval mode, a new `applies_when` operator), that's a PR — extend the model / DSL evaluator / serializer.
 
 ## Reporting bugs
 
-GitHub issues. Include: SuperStar version, Python version, the minimal repro, what you expected vs. what happened.
+GitHub issues. Include: Superstar version, Python version, the minimal repro, what you expected vs. what happened.
 
 ## Security
 

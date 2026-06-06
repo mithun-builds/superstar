@@ -1,12 +1,12 @@
 # Ticket types — runtime configuration
 
-Each tenant org defines its own ticket types through the SuperStar admin UI.
+Each tenant org defines its own ticket types through the Superstar admin UI.
 There are no ticket types in code — the platform itself is generic, and every
 ticket type is a row in `apps_tickets_tickettype` scoped to a single org.
 
 If you're looking for "how do I add a ticket type for HomeLane's
 non-standard furniture flow", you don't write code. You sign in to a
-running SuperStar deployment as a HomeLane org admin and create one via
+running Superstar deployment as a HomeLane org admin and create one via
 **Admin → Ticket types → New**.
 
 ## The data model
@@ -177,7 +177,7 @@ service forces escalation.
 
 ## Why not YAML files
 
-Earlier iterations of SuperStar loaded ticket types from
+Earlier iterations of Superstar loaded ticket types from
 `SUPERSTAR_CONFIG_DIR/plugins/*.yaml` at startup. That was wrong for a
 SaaS-shaped product:
 

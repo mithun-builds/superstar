@@ -10,7 +10,7 @@ If you only have time for one verification at the end, it's
 
 ## What you'll have when you're done
 
-- SuperStar backend running on `http://localhost:8000`
+- Superstar backend running on `http://localhost:8000`
 - Frontend running on `http://localhost:5173`
 - A `demo` tenant with one ticket type configured through the admin UI
 - One KB rule embedded with BGE-M3
@@ -119,7 +119,7 @@ python manage.py create_tenant --slug demo --name "Demo Org" \
 ```
 
 This creates the `Org`, a new `User`, and an `OrgMembership` with
-role=owner. You'll log into the SuperStar UI as this user.
+role=owner. You'll log into the Superstar UI as this user.
 
 ---
 

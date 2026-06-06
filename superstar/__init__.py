@@ -1,4 +1,4 @@
-"""SuperStar — AI-native ticketing platform.
+"""Superstar — AI-native ticketing platform.
 
 The `superstar` package holds framework-agnostic code: LLM client interfaces,
 plugin contracts, middleware. Django apps live under `apps/`.

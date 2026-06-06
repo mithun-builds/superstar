@@ -1,4 +1,4 @@
-/* SuperStar — design system.
+/* Superstar — design system.
  *
  * Single source of truth for everything visual. Tokens live in :root;
  * components reference tokens, never hex literals. The catalog matches
@@ -716,17 +716,19 @@ input[type="checkbox"] {
   padding-block: var(--space-12);
 }
 /* Hero centred vertically within the stretched column so it visually
-   matches the sign-in card's center-of-mass. The padding-inline-start
-   matches the sign-in card's internal padding so the logo's left edge
-   lines up horizontally with the "Sign in" title to the right. */
+   matches the sign-in card's center-of-mass. The padding-inline
+   matches the sign-in card's internal padding on BOTH sides — content
+   sits inside an invisible mirror of the signin card's frame, so the
+   left AND right edges align horizontally with the form inputs across
+   the gap. */
 .landing-hero {
   display: grid;
   gap: var(--space-3);
   align-content: center;
-  padding-inline-start: var(--space-4);
+  padding-inline: var(--space-4);
 }
 
-/* Brand row — logo + "SuperStar" inline. Both in brand red.
+/* Brand row — logo + "Superstar" inline. Both in brand red.
    Sized closer to the mobile treatment so the wordmark reads as a
    proper hero on desktop instead of small-print chrome. */
 .landing-brand {
@@ -775,7 +777,9 @@ input[type="checkbox"] {
   width: 100%;
 }
 .signin-title {
-  font-size: 14px; font-weight: 700;
+  /* Same size as .landing-tagline so the eye reads "AI-native ticketing"
+     and "Sign in" as peer headings across the two columns. */
+  font-size: 16px; font-weight: 700;
   letter-spacing: -0.005em;
   margin: 0;
   color: var(--ink-950);

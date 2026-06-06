@@ -1,4 +1,4 @@
-# SuperStar
+# Superstar
 
 **AI-native ticketing platform with grounded auto-decisioning.**
 
@@ -13,14 +13,14 @@ Request ──► RAG over Knowledge Base ──► Decide
                        (cite rules, close)        human approvers
 ```
 
-SuperStar is a generic, self-hostable platform. Every tenant — your company, the customer next door, whoever — configures their ticket types, knowledge base, approval chains, and AI policy **through SuperStar's UI**, in the running product. No filesystem-edited YAML, no separate config repos. Onboard like any SaaS.
+Superstar is a generic, self-hostable platform. Every tenant — your company, the customer next door, whoever — configures their ticket types, knowledge base, approval chains, and AI policy **through Superstar's UI**, in the running product. No filesystem-edited YAML, no separate config repos. Onboard like any SaaS.
 
-## Why SuperStar
+## Why Superstar
 
 - **Grounded decisions only.** Every auto-decision cites the rule_ids it used. Citations are mechanically verified against retrieved chunks *and* checked against each rule's `applies_when` conditions — no hallucinated rule references, no misapplied real rules.
 - **Open-weight LLM by default.** Self-host Qwen 2.5 via Ollama or vLLM. Swap any backend via the `LLMClient` interface.
 - **Multi-tenant from v1.** One platform, many orgs. Postgres RLS isolates tenants. Path-routed (`/o/{org-slug}/...`).
-- **Configure in the product, not the filesystem.** Org admins create ticket types, schema fields, approval workflows, system prompts, and KB rules through the SuperStar admin UI. Everything lives in Postgres, scoped per-org.
+- **Configure in the product, not the filesystem.** Org admins create ticket types, schema fields, approval workflows, system prompts, and KB rules through the Superstar admin UI. Everything lives in Postgres, scoped per-org.
 - **Approval chains with real vote semantics.** Four stage modes — `any_member`, `unanimous_team`, `majority`, `specific_user` — backed by team membership and a vote tally that updates live.
 - **Conditional forms.** Schema fields support `show_if` (visibility) and `choices_if` (cascading dropdowns) via the same `applies_when` DSL admins already learn for rule conditions.
 - **Async decisioning.** `POST /decide/` returns 202 + a task id; a Celery worker runs the LLM call; the frontend polls. Long inference doesn't block the request thread.
@@ -79,7 +79,7 @@ Then sign in at `/admin/login/`, hit `http://localhost:5173/o/demo`, and:
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                   SuperStar (this repo)                     │
+│                   Superstar (this repo)                     │
 │                                                              │
 │   ┌────────────┐   ┌─────────────┐   ┌──────────────────┐   │
 │   │  Tickets   │   │ Decisioning │   │  KB (RuleChunk)  │   │

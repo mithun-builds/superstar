@@ -3,7 +3,7 @@
 Persisted regardless of outcome (auto-decide / escalate / error). This is the
 audit trail for grounding: every record has the prompt, the retrieved chunks,
 and the raw model output. Required for shadow-mode comparison and for
-debugging "why did SuperStar approve this?".
+debugging "why did Superstar approve this?".
 """
 from __future__ import annotations
 

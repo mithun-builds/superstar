@@ -10,7 +10,7 @@ references a `TicketType` row in the same org, which carries:
 
 All of this is editable per-org via the admin UI. There is no filesystem
 configuration of ticket types — tenants configure themselves entirely
-through SuperStar's running product.
+through Superstar's running product.
 
 `payload` is JSONB on Ticket — its schema is enforced by walking the
 TicketType's field rows in the serializer.
@@ -39,7 +39,7 @@ class TicketType(models.Model):
 
     Identifier is unique within an org (e.g. `homelane.nonstandard`,
     `homelane.engineering`). The identifier shape is the org's choice —
-    SuperStar doesn't impose a naming scheme.
+    Superstar doesn't impose a naming scheme.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

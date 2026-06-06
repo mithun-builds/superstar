@@ -60,7 +60,7 @@ export default function GetStarted({ orgSlug }: { orgSlug: string }) {
       done: hasType,
       title: "Configure a ticket type",
       description:
-        "Define the form fields requesters fill in, the approval workflow, and the system prompt SuperStar uses for decisioning.",
+        "Define the form fields requesters fill in, the approval workflow, and the system prompt Superstar uses for decisioning.",
       ctaLabel: "Open admin",
       ctaHref: `/o/${orgSlug}/admin/ticket-types`,
     },

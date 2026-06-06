@@ -1,4 +1,4 @@
-# SuperStar — production-ish backend image.
+# Superstar — production-ish backend image.
 # Dev uses host Python; this is for deploy targets.
 FROM python:3.11-slim AS base
 

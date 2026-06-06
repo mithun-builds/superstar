@@ -1,4 +1,4 @@
-"""The decisioning service — the loop SuperStar exists to run.
+"""The decisioning service — the loop Superstar exists to run.
 
 ```
 ticket ──► retrieve_chunks ──► LLMClient.decide ──► 4 guards ──► apply or escalate

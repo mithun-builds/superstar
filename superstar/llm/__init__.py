@@ -1,6 +1,6 @@
 """LLM client abstraction.
 
-The rest of SuperStar depends on `LLMClient` — never on a specific backend.
+The rest of Superstar depends on `LLMClient` — never on a specific backend.
 Swapping Ollama for vLLM (or vice versa) is a settings change, not a code
 change. New backends register themselves via `get_llm_client()`.
 """

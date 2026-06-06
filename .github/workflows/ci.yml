@@ -1,4 +1,4 @@
-# SuperStar CI.
+# Superstar CI.
 #
 # Runs on every push to main and every PR. Two jobs in parallel so the
 # whole pipeline finishes in ~5 minutes:

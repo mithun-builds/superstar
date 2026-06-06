@@ -1,8 +1,8 @@
 """Django admin registration for ticket-type configuration.
 
-Until the dedicated SuperStar admin UI lands, org admins can create and edit
+Until the dedicated Superstar admin UI lands, org admins can create and edit
 TicketType, TicketTypeField, and WorkflowStage rows via Django's built-in
-/admin/. This is a stop-gap — production use should go through the SuperStar
+/admin/. This is a stop-gap — production use should go through the Superstar
 admin UI once it ships, because Django admin doesn't respect org-scoping by
 default (a platform superuser sees all orgs' rows).
 """

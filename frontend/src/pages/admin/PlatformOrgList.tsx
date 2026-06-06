@@ -29,7 +29,7 @@ export default function PlatformOrgList() {
         </header>
         <p className="muted">
           Platform-level actions (create / delete tenants) are limited to
-          superusers. Ask the SuperStar operator if you need a new org.
+          superusers. Ask the Superstar operator if you need a new org.
         </p>
       </>
     );

@@ -1,4 +1,4 @@
-# SuperStar dev stack — Postgres+pgvector + Redis.
+# Superstar dev stack — Postgres+pgvector + Redis.
 #
 # Ollama is NOT in this file deliberately:
 # - On macOS, Docker can't pass Metal through to the container — Ollama-in-Docker

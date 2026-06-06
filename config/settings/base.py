@@ -1,4 +1,4 @@
-"""SuperStar base Django settings.
+"""Superstar base Django settings.
 
 Read by dev.py / prod.py and overridden where necessary. All env-driven values
 land here so per-env files stay minimal.
@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
-    # SuperStar apps
+    # Superstar apps
     "apps.accounts",
     "apps.tenants",
     "apps.tickets",
@@ -57,7 +57,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # SuperStar — resolves current org from path / subdomain and stores on request.
+    # Superstar — resolves current org from path / subdomain and stores on request.
     "superstar.middleware.tenant.TenantMiddleware",
 ]
 
@@ -159,7 +159,7 @@ CELERY_TASK_EAGER_PROPAGATES = True  # tests want to see exceptions, not swallow
 CELERY_TIMEZONE = "UTC"
 
 # ---------------------------------------------------------------------------
-# SuperStar — LLM
+# Superstar — LLM
 # ---------------------------------------------------------------------------
 LLM = {
     "PROVIDER": env("LLM_PROVIDER", default="ollama"),
@@ -170,7 +170,7 @@ LLM = {
 }
 
 # ---------------------------------------------------------------------------
-# SuperStar — embeddings
+# Superstar — embeddings
 # ---------------------------------------------------------------------------
 EMBEDDINGS = {
     "MODEL": env("EMBEDDING_MODEL", default="BAAI/bge-m3"),
@@ -179,7 +179,7 @@ EMBEDDINGS = {
 }
 
 # ---------------------------------------------------------------------------
-# SuperStar — decisioning
+# Superstar — decisioning
 # ---------------------------------------------------------------------------
 DECISIONING = {
     "CONFIDENCE_THRESHOLD": env("DECISIONING_CONFIDENCE_THRESHOLD"),

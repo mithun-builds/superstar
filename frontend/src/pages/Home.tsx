@@ -7,7 +7,7 @@
 //   - Not signed in     → branded landing with inline sign-in form
 //   - Signed in         → "Pick a workspace" with org tiles
 //
-// The branded landing leans on the SuperStar mark (red ticket + gold
+// The branded landing leans on the Superstar mark (red ticket + gold
 // star) as the only visual flourish — everything else stays on the same
 // minimal pattern as the rest of the app.
 
@@ -64,7 +64,7 @@ function Landing({ onSignedIn }: { onSignedIn: () => void }) {
       <div className="landing-hero">
         <div className="landing-brand">
           <img src="/logo.svg" alt="" className="landing-logo" aria-hidden="true" />
-          <h1 className="landing-title">SuperStar</h1>
+          <h1 className="landing-title">Superstar</h1>
         </div>
         <p className="landing-tagline">
           AI-native ticketing with grounded decisions.

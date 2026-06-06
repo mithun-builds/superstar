@@ -1,6 +1,6 @@
 """Knowledge base — rule chunks + their embeddings.
 
-Rules are created and edited via the SuperStar admin UI. Each row carries
+Rules are created and edited via the Superstar admin UI. Each row carries
 its markdown body, frontmatter (decision, applies_when, price, post-actions),
 and a BGE-M3 embedding for vector retrieval. Rules belong to a TicketType
 (FK in apps.tickets.models) and are tenant-scoped via Org RLS.

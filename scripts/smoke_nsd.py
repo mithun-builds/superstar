@@ -185,7 +185,7 @@ def verify_citations(cited: list[str], retrieved: list[Rule]) -> list[str]:
 
 
 def main() -> int:
-    print(f"{BOLD}SuperStar RAG smoke — NSD.AI{RESET}")
+    print(f"{BOLD}Superstar RAG smoke — NSD.AI{RESET}")
     print(f"  model     : {OLLAMA_MODEL}")
     print(f"  embedding : {EMBEDDING_MODEL}")
     print(f"  KB dir    : {KB_DIR}")

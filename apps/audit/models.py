@@ -1,6 +1,6 @@
 """Append-only audit log — every meaningful event.
 
-This is the source of truth for "what did SuperStar do, and why?". Records are
+This is the source of truth for "what did Superstar do, and why?". Records are
 never updated or deleted in normal operation. Compliance use cases may want
 WORM storage (see SECURITY.md).
 """

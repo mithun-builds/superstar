@@ -1,7 +1,7 @@
 // Shared chrome: header, admin sub-nav, content container.
 //
 // Header is hidden on the unauthenticated landing (`/` when /api/me/ 403s)
-// because the landing carries its own SuperStar mark in the hero — showing
+// because the landing carries its own Superstar mark in the hero — showing
 // the navbar above it would just duplicate the brand and add chrome that
 // has no useful links on a signed-out page.
 //
@@ -38,7 +38,7 @@ export default function Layout() {
           <div className="app-header-inner">
             <Link to="/" className="brand">
               <img src="/logo.svg" alt="" className="brand-logo" aria-hidden="true" />
-              <span>SuperStar</span>
+              <span>Superstar</span>
             </Link>
             {slug && (
               <>

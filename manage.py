@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""SuperStar — Django management entrypoint."""
+"""Superstar — Django management entrypoint."""
 import os
 import sys
 

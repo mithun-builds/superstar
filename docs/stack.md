@@ -5,7 +5,7 @@ survived.
 
 ## Backend: Django 5 + DRF
 
-- Django's built-in admin is a huge win for SuperStar's primary operator UX
+- Django's built-in admin is a huge win for Superstar's primary operator UX
   (org management, KB inspection, plugin spec review). Building this in
   FastAPI would mean re-implementing the admin or building a separate React
   admin app.
@@ -32,7 +32,7 @@ survived.
   for app, separate Milvus/Qdrant for vectors) doubles the ops surface for a
   use case where the vector table is small (~thousands of rules per tenant).
 - `pgvector` is mature enough by 2026; `cosine_distance` is fast enough for
-  the scale SuperStar targets.
+  the scale Superstar targets.
 
 ## Queue: Celery + Redis
 
@@ -51,18 +51,18 @@ survived.
 
 ## LLM: open-weight only, via LLMClient
 
-- **Why open-weight at all:** SuperStar is open-source; users self-hosting
+- **Why open-weight at all:** Superstar is open-source; users self-hosting
   it can run the full stack without an API account.
 - **Why behind an interface:** the LLM is the single component most likely
   to change (new Qwen versions, switching to Llama, adopting reasoning
   models). `LLMClient` lets us swap backends without touching decisioning code.
 - **Dev default — Ollama with Qwen 2.5 7B Q4_K_M:** ~4.5 GB, runs on a 16GB
-  Mac. Sufficient for SuperStar's grounded-RAG task type given the inputs are
+  Mac. Sufficient for Superstar's grounded-RAG task type given the inputs are
   structured dropdowns.
 - **Prod default — vLLM with Qwen 2.5 32B AWQ:** ~24-28 GB on one L40S or
   H100. Better refusal/grounding than 7B; cheaper than 72B for the task.
   72B is over-spec'd for structured rule-matching.
-- **Why not Claude/GPT:** they'd give the best quality, but a SuperStar
+- **Why not Claude/GPT:** they'd give the best quality, but a Superstar
   deployment would then depend on a closed-API provider. Conscious tradeoff:
   10-15 points of quality for full self-hostability.
 
@@ -85,6 +85,6 @@ survived.
   library you embed. The decisioning loop is ~150 lines of Python.
 - **LangChain as the framework.** Too much surface area for what we need.
   Direct retriever → LLM → citation verifier is clearer to read and audit.
-- **Multi-DB sharding.** RLS in one Postgres is enough for SuperStar's scale.
+- **Multi-DB sharding.** RLS in one Postgres is enough for Superstar's scale.
 - **GraphQL.** REST is enough; one consumer (our own frontend) doesn't
   need GraphQL flexibility.

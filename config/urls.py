@@ -1,4 +1,4 @@
-"""SuperStar URL config.
+"""Superstar URL config.
 
 Two top-level URL spaces:
 - /admin/             Django admin (platform-level: superusers managing orgs)

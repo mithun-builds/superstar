@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone end-to-end smoke for SuperStar's decisioning loop.
+"""Standalone end-to-end smoke for Superstar's decisioning loop.
 
 No Django, no Postgres, no plugins — just the four moving parts:
 
@@ -222,7 +222,7 @@ CASES: list[TestCase] = [
 # Driver
 # ---------------------------------------------------------------------------
 def main() -> int:
-    print(f"{BOLD}SuperStar decisioning smoke{RESET}")
+    print(f"{BOLD}Superstar decisioning smoke{RESET}")
     print(f"  model          : {OLLAMA_MODEL}")
     print(f"  embedding model: {EMBEDDING_MODEL}")
     print(f"  KB dir         : {KB_DIR.relative_to(REPO_ROOT)}")

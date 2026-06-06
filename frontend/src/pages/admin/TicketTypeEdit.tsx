@@ -222,7 +222,7 @@ function IdentityHeader({
                 rows={10}
                 value={form.system_prompt}
                 onChange={(e) => setForm({ ...form, system_prompt: e.target.value })}
-                placeholder="You are SuperStar's decisioning engine for ..."
+                placeholder="You are Superstar's decisioning engine for ..."
                 style={{ fontFamily: "var(--font-mono)", fontSize: "12.5px" }}
               />
               <small className="help">

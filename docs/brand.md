@@ -1,18 +1,18 @@
-# SuperStar brand guidelines
+# Superstar brand guidelines
 
-> SuperStar is a piece of infrastructure that has to feel personal.
+> Superstar is a piece of infrastructure that has to feel personal.
 > Operators run it; org admins configure it; everyday people submit
 > tickets and read decisions. The brand has to carry warmth without
 > sacrificing competence.
 
-This document is the single source of truth for what SuperStar looks
+This document is the single source of truth for what Superstar looks
 like and how it talks. Implementers should never invent a token, a
 component, or a tone of voice — if it's not in here, ask before adding
 it.
 
 The visual references this draws from are mobile task-management apps
 (Todoist, Microsoft To Do, indie task apps like the references in our
-shared design folder). The intent: SuperStar should feel as friendly
+shared design folder). The intent: Superstar should feel as friendly
 on a phone as those apps do, and as serious on a desktop dashboard
 as Stripe or Linear.
 
@@ -439,7 +439,7 @@ monospace.
 
 ### About the product
 
-When describing SuperStar in writing (README, marketing copy, slides):
+When describing Superstar in writing (README, marketing copy, slides):
 
 - Lead with the outcome, not the feature: *"Auto-decide most requests, cite the rules, escalate the rest."* Not *"AI-powered ticketing platform with RAG."*
 - Be specific about the safety contract — citation + applies_when + threshold is the whole pitch.

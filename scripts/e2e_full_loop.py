@@ -83,7 +83,7 @@ def main() -> int:
             "require_citation": True,
             "shadow_mode": False,  # so /decide/ actually applies the decision
             "system_prompt": (
-                "You are SuperStar's decisioning engine. Given a request payload and "
+                "You are Superstar's decisioning engine. Given a request payload and "
                 "retrieved rule chunks, output exactly one JSON object — nothing else.\n\n"
                 "Schema (every field required):\n"
                 '{"decision": "approve"|"reject"|"escalate", "cited_rule_ids": ["..."], '
