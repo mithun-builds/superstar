@@ -638,30 +638,36 @@ input[type="checkbox"] {
   grid-template-columns: auto 1fr auto;
   gap: var(--space-4);
   align-items: center;
-  padding: var(--space-4) var(--space-6);
-  background: var(--ink-50);
-  border: 1px solid var(--ink-100);
-  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  background: var(--ink-0);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--radius-md);
   color: var(--ink-900);
-  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.05s;
 }
 .org-tile:hover {
-  background: var(--ink-0);
   border-color: var(--ink-300);
+  box-shadow: var(--shadow-surface);
   text-decoration: none;
 }
+.org-tile:active { transform: scale(0.995); }
+/* Round avatar — softer than the ink-900 squircle the previous pass
+   used, and the round shape stops the inner-radius (16) / outer (24)
+   mismatch from creating awkward concentric curves. Soft red wash
+   nods to brand without going full --red-600 (which would compete
+   with primary CTAs elsewhere on the page). */
 .org-tile-avatar {
-  width: 48px; height: 48px;
-  border-radius: var(--radius-lg);
-  background: var(--ink-900);
-  color: var(--ink-0);
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--red-100);
+  color: var(--red-700);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+  font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
 }
 .org-tile-body { display: grid; gap: 2px; min-width: 0; }
 .org-tile-name {
-  font-weight: 700;
-  font-size: 17px;
+  font-weight: 600;
+  font-size: 15px;
   color: var(--ink-900);
   letter-spacing: -0.005em;
 }
@@ -677,6 +683,15 @@ input[type="checkbox"] {
 .org-tile:hover .org-tile-arrow { color: var(--ink-900); transform: translateX(2px); }
 
 .empty-state { margin-top: var(--space-8); display: grid; gap: var(--space-4); }
+
+/* Quiet session-action line below the workspace list.  Sign-out is
+   a verb the user reaches for occasionally, not a primary nav choice
+   — keep it visible but de-emphasised. */
+.signout-line {
+  margin-top: var(--space-8);
+  font-size: 13px;
+  color: var(--ink-500);
+}
 
 /* Legacy aliases — keep so old code still renders. */
 .org-card {

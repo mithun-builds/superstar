@@ -25,19 +25,24 @@ export default function Home() {
   if (!me.data) return null;
   const u = me.data;
 
+  // First-name greeting if we have one, otherwise the local-part of
+  // the email — never "user". "Hello, admin." reads warmer than
+  // "Pick a workspace" and matches our brand voice (task-app inspired).
+  const firstName = (u.full_name || u.email.split("@")[0] || "there").split(/\s+/)[0];
+
   return (
     <>
-      <header className="page-header">
-        <div style={{ display: "grid", gap: "var(--space-2)" }}>
-          <h1>Pick a workspace</h1>
-          <p className="muted" style={{ margin: 0 }}>
-            Signed in as{" "}
-            <strong style={{ color: "var(--ink-900)", fontWeight: 500 }}>
-              {u.full_name || u.email}
-            </strong>
-            . <SignOutLink />
-          </p>
-        </div>
+      <header className="page-header" style={{ display: "grid", gap: "var(--space-2)" }}>
+        <h1 className="greeting-line">
+          Hello, <span className="name">{firstName}</span>.
+        </h1>
+        <p className="greeting-sub">
+          {u.memberships.length === 0
+            ? "You're not in any workspaces yet."
+            : u.memberships.length === 1
+            ? "Pick up where you left off."
+            : "Pick a workspace to continue."}
+        </p>
       </header>
 
       {u.memberships.length === 0 ? (
@@ -51,6 +56,13 @@ export default function Home() {
           ))}
         </ul>
       )}
+
+      {/* Sign-out lives as a quiet line at the bottom of the page — it's
+          a session action, not a navigation choice, so it doesn't belong
+          competing with the workspace tiles. */}
+      <p className="signout-line">
+        Signed in as {u.full_name || u.email}. <SignOutLink />
+      </p>
     </>
   );
 }
