@@ -21,15 +21,15 @@ export default function Layout() {
   const slug = useOrg();
   const location = useLocation();
   const inAdmin = location.pathname.includes("/admin/");
-  const { data: me, loading: meLoading, error: meError } = useApi<Me>("/api/me/");
+  const { data: me, error: meError } = useApi<Me>("/api/me/");
 
-  // Hide the navbar on the unauthenticated landing. We're on the landing
-  // iff the path is "/" and /api/me/ failed (the React app will then
-  // render the SignInPrompt in <Home />). We deliberately wait for the
-  // /me/ request to settle so we don't briefly flash a header in the
-  // signed-in case while the request is in flight.
-  const onUnauthLanding =
-    location.pathname === "/" && !meLoading && (meError !== null || me === null);
+  // Hide the navbar on the unauthenticated landing. "Unauth" means we
+  // actually saw an error from /api/me/ — NOT just "data hasn't arrived
+  // yet". useApi's initial state is data=null, error=null, loading=false
+  // (until the useEffect fires), so checking `me === null` would treat
+  // that pre-fetch render as unauth and flash the no-header layout for
+  // signed-in users. Only `meError !== null` reliably means signed out.
+  const onUnauthLanding = location.pathname === "/" && meError !== null;
 
   return (
     <div className={`app-shell ${onUnauthLanding ? "unframed" : ""}`}>

@@ -817,6 +817,12 @@ input[type="checkbox"] {
 /* The landing reins the outer container in to its own max-width. */
 .app-main:has(.landing) { max-width: var(--max-wide); }
 
+/* The org picker is a sparse action page — heading + a couple of
+   workspace tiles. The default reading width (760 px) makes the tiles
+   look stretched and the page feel empty; pull it in to focus the eye. */
+.app-main:has(.org-list),
+.app-main:has(.empty-state) { max-width: 520px; }
+
 /* ─────────────────── Get started checklist ─────────────────── */
 .get-started {
   border: 1px solid var(--ink-200);
